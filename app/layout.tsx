@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider taskUrls={{ 'choose-organization': '/onboarding' }}>
       <html lang="en">
         <body style={{ margin: 0 }}>{children}</body>
       </html>
