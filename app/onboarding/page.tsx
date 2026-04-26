@@ -1,36 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useOrganizationList, useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const C = { bg: "#f8fafc", surf: "#ffffff", border: "#e2e8f0", text: "#0f172a", muted: "#64748b", accent: "#2563eb" };
 
-export default function OnboardingPage() {
-  const { userMemberships, isLoaded } = useOrganizationList({ userMemberships: true });
+function OnboardingContent() {
+  const { userMemberships, isLoaded, createOrganization, setActive } = useOrganizationList({ userMemberships: true });
   const { user } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isNewBudget = searchParams.get("new") === "1";
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (isNewBudget) return;
     if (isLoaded && userMemberships?.data && userMemberships.data.length > 0) {
       router.replace("/");
     }
-  }, [isLoaded, userMemberships, router]);
+  }, [isLoaded, userMemberships, router, isNewBudget]);
 
   const createBudget = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !createOrganization || !setActive) return;
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/orgs/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() }),
-      });
+      const org = await createOrganization({ name: name.trim() });
+      await setActive({ organization: org.id });
+      const res = await fetch("/api/seed", { method: "POST" });
       if (!res.ok) throw new Error(await res.text());
       router.replace("/");
     } catch (err: unknown) {
@@ -87,5 +88,13 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardingContent />
+    </Suspense>
   );
 }
