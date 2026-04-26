@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       })
       .where(eq(settings.orgId, orgId))
       .returning();
-    return NextResponse.json(updated[0]);
+    return NextResponse.json({ ...updated[0], isOwner: updated[0].creatorId === userId });
   }
   const inserted = await db.insert(settings).values({
     orgId,
@@ -58,5 +58,5 @@ export async function POST(req: NextRequest) {
     merchantMap: body.merchantMap ?? {},
     monthlyNotes: body.monthlyNotes ?? {},
   }).returning();
-  return NextResponse.json(inserted[0]);
+  return NextResponse.json({ ...inserted[0], isOwner: inserted[0].creatorId === userId });
 }

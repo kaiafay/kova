@@ -62,9 +62,13 @@ export function BudgetSwitcher() {
 
   const removeMember = async (userId: string) => {
     try {
+      const isSelf = members.find((m) => m.userId === userId)?.isCurrentUser ?? false;
       const res = await fetch(`/api/members/${userId}`, { method: "DELETE" });
       if (!res.ok) throw new Error(await res.text());
       setMembers((prev) => prev.filter((m) => m.userId !== userId));
+      if (isSelf) {
+        window.location.href = "/onboarding";
+      }
     } catch (err: unknown) {
       setMembersError(err instanceof Error ? err.message : "Something went wrong");
     }
@@ -85,6 +89,7 @@ export function BudgetSwitcher() {
     setInviteError("");
     try {
       await organization.inviteMember({ emailAddress: email.trim(), role: "org:admin" });
+      await organization.reload();
       setInviteSuccess(true);
       setEmail("");
     } catch (err: unknown) {
