@@ -46,6 +46,7 @@ export const checkins = pgTable("checkins", {
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
   orgId: text("org_id").notNull().unique(),
+  creatorId: text("creator_id"),
   checkinDay: integer("checkin_day").default(0),
   merchantMap: jsonb("merchant_map").default({}),
   monthlyNotes: jsonb("monthly_notes").default({}),
