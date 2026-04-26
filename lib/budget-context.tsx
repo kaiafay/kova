@@ -100,18 +100,21 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (organization) {
+      setIsOwner(false);
       fetchAll();
     }
   }, [organization?.id, fetchAll]);
 
   const addTransactions = async (txns: Omit<Transaction, "id" | "orgId" | "createdBy">[]) => {
     const res = await fetch("/api/transactions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(txns) });
+    if (!res.ok) throw new Error(await res.text());
     const inserted = await res.json();
     setTransactions(t => [...t, ...(Array.isArray(inserted) ? inserted : [inserted])]);
   };
 
   const deleteTransaction = async (id: number) => {
-    await fetch(`/api/transactions/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error(await res.text());
     setTransactions(t => t.filter(x => x.id !== id));
   };
 
@@ -138,7 +141,8 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteCheckin = async (id: number) => {
-    await fetch(`/api/checkins/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/checkins/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error(await res.text());
     setCheckins(prev => prev.filter(x => x.id !== id));
   };
 
@@ -147,6 +151,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
     const res = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(merged) });
     const saved = await res.json();
     setSettings({ checkinDay: saved.checkinDay ?? 0, merchantMap: saved.merchantMap ?? {}, monthlyNotes: saved.monthlyNotes ?? {} });
+    setIsOwner(saved.isOwner ?? false);
   };
 
   return (

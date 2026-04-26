@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useOrganization } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Nav } from "@/components/nav";
 import { CheckinModal } from "@/components/checkin-modal";
 import { BudgetProvider, useBudget, TODAY, TODAY_STR } from "@/lib/budget-context";
+import { usePolling } from "@/lib/use-polling";
 
 const TODAY_OBJ = new Date();
 const TODAY_DOW = TODAY_OBJ.getDay();
@@ -13,9 +14,31 @@ const TODAY_DOW = TODAY_OBJ.getDay();
 function DashboardInner({ children }: { children: React.ReactNode }) {
   const { organization } = useOrganization();
   const router = useRouter();
-  const { transactions, budgets, checkins, settings, loaded, filterMonth, addCheckin, saveSettings } = useBudget();
+  const { transactions, budgets, checkins, settings, loaded, filterMonth, addCheckin, saveSettings, refetch } = useBudget();
   const [showCheckin, setShowCheckin] = useState(false);
   const [weeklyDismissed, setWeeklyDismissed] = useState<string | null>(null);
+
+  const lastFingerprint = useRef<string | null>(null);
+  const lastOrgId = useRef<string | undefined>(undefined);
+  const checkForUpdates = useCallback(async () => {
+    if (!organization) return;
+    if (organization.id !== lastOrgId.current) {
+      lastOrgId.current = organization.id;
+      lastFingerprint.current = null;
+    }
+    try {
+      const res = await fetch("/api/last-updated");
+      if (!res.ok) return;
+      const { fingerprint } = await res.json();
+      if (lastFingerprint.current !== null && lastFingerprint.current !== fingerprint) {
+        await refetch();
+      }
+      lastFingerprint.current = fingerprint;
+    } catch {
+      // ignore network errors during polling
+    }
+  }, [organization, refetch]);
+  usePolling(checkForUpdates, 20_000);
 
   // Redirect to onboarding if no org
   useEffect(() => {
