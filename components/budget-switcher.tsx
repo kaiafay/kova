@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useOrganization, useOrganizationList, useClerk } from "@clerk/nextjs";
+import { useOrganization, useOrganizationList } from "@clerk/nextjs";
 import { KovaGem } from "./kova-gem";
 
 const C = {
@@ -18,13 +18,16 @@ export function BudgetSwitcher() {
   const { organization } = useOrganization();
   const { userMemberships, setActive, createOrganization } =
     useOrganizationList({ userMemberships: true });
-  const { openOrganizationProfile } = useClerk();
   const [open, setOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [newBudgetOpen, setNewBudgetOpen] = useState(false);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState("");
+  const [inviteSuccess, setInviteSuccess] = useState(false);
 
   const orgs = userMemberships?.data ?? [];
 
@@ -34,6 +37,30 @@ export function BudgetSwitcher() {
       window.location.reload();
     }
     setOpen(false);
+  };
+
+  const openInvite = () => {
+    setOpen(false);
+    setEmail("");
+    setInviteError("");
+    setInviteSuccess(false);
+    setInviteOpen(true);
+  };
+
+  const sendInvite = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!email.trim() || !organization) return;
+    setInviteLoading(true);
+    setInviteError("");
+    try {
+      await organization.inviteMember({ emailAddress: email.trim(), role: "org:admin" });
+      setInviteSuccess(true);
+      setEmail("");
+    } catch (err: unknown) {
+      setInviteError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setInviteLoading(false);
+    }
   };
 
   const openNewBudget = () => {
@@ -198,12 +225,7 @@ export function BudgetSwitcher() {
                 + New Budget
               </button>
               <button
-                onClick={() => {
-                  setOpen(false);
-                  openOrganizationProfile({
-                    __experimental_startPath: "/organization-members",
-                  });
-                }}
+                onClick={openInvite}
                 style={{
                   width: "100%",
                   textAlign: "left",
@@ -332,6 +354,153 @@ export function BudgetSwitcher() {
                 <div style={{ fontSize: 12, color: "#dc2626" }}>{error}</div>
               )}
             </form>
+          </div>
+        </>
+      )}
+      {inviteOpen && (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 100,
+              background: "rgba(15,23,42,0.4)",
+              backdropFilter: "blur(2px)",
+            }}
+            onClick={() => setInviteOpen(false)}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              zIndex: 101,
+              background: C.surf,
+              border: `1px solid ${C.border}`,
+              borderRadius: 16,
+              padding: 36,
+              width: "100%",
+              maxWidth: 440,
+              boxShadow: "0 16px 48px rgba(0,0,0,0.15)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 20,
+              }}
+            >
+              <div style={{ fontSize: 17, fontWeight: 800, color: C.text, letterSpacing: -0.4 }}>
+                Invite a partner
+              </div>
+              <button
+                onClick={() => setInviteOpen(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: C.muted,
+                  fontSize: 20,
+                  lineHeight: 1,
+                  padding: 2,
+                }}
+              >
+                ×
+              </button>
+            </div>
+            {inviteSuccess ? (
+              <div>
+                <div style={{ fontSize: 14, color: "#16a34a", marginBottom: 16 }}>
+                  Invite sent! They&apos;ll receive an email to join <strong>{organization?.name}</strong>.
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => { setInviteSuccess(false); }}
+                    style={{
+                      padding: "10px 20px",
+                      background: C.accent,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      fontWeight: 700,
+                      fontSize: 14,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Invite another
+                  </button>
+                  <button
+                    onClick={() => setInviteOpen(false)}
+                    style={{
+                      padding: "10px 20px",
+                      background: "transparent",
+                      color: C.muted,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 8,
+                      fontWeight: 600,
+                      fontSize: 14,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={sendInvite}>
+                <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>
+                  Enter your partner&apos;s email to invite them to <strong>{organization?.name}</strong>.
+                </div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <input
+                    autoFocus
+                    type="email"
+                    style={{
+                      flex: 1,
+                      padding: "10px 14px",
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 8,
+                      fontSize: 14,
+                      fontFamily: "inherit",
+                      outline: "none",
+                      color: C.text,
+                      background: C.surf,
+                    }}
+                    placeholder="partner@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={inviteLoading}
+                  />
+                  <button
+                    type="submit"
+                    disabled={inviteLoading || !email.trim()}
+                    style={{
+                      padding: "10px 20px",
+                      background: C.accent,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      fontWeight: 700,
+                      fontSize: 14,
+                      cursor: inviteLoading ? "not-allowed" : "pointer",
+                      opacity: inviteLoading || !email.trim() ? 0.6 : 1,
+                      fontFamily: "inherit",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {inviteLoading ? "Sending…" : "Send invite"}
+                  </button>
+                </div>
+                {inviteError && (
+                  <div style={{ fontSize: 12, color: "#dc2626" }}>{inviteError}</div>
+                )}
+              </form>
+            )}
           </div>
         </>
       )}
