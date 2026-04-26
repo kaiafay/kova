@@ -142,6 +142,7 @@ export async function POST() {
 
   await db.insert(settings).values({
     orgId,
+    creatorId: userId,
     checkinDay: 0,
     merchantMap: {},
     monthlyNotes: {},

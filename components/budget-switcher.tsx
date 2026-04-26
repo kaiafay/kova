@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useOrganization, useOrganizationList } from "@clerk/nextjs";
 import { KovaGem } from "./kova-gem";
+import { useBudget } from "@/lib/budget-context";
 
 const C = {
   bg: "#f8fafc",
@@ -18,6 +19,7 @@ export function BudgetSwitcher() {
   const { organization } = useOrganization();
   const { userMemberships, setActive, createOrganization } =
     useOrganizationList({ userMemberships: true });
+  const { isOwner } = useBudget();
   const [open, setOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [newBudgetOpen, setNewBudgetOpen] = useState(false);
@@ -28,15 +30,44 @@ export function BudgetSwitcher() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState("");
   const [inviteSuccess, setInviteSuccess] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [members, setMembers] = useState<{ userId: string; firstName: string | null; lastName: string | null; identifier: string; isCreator: boolean; isCurrentUser: boolean }[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState("");
 
   const orgs = userMemberships?.data ?? [];
 
   const switchOrg = async (orgId: string) => {
+    setOpen(false);
     if (setActive) {
       await setActive({ organization: orgId });
-      window.location.reload();
     }
+  };
+
+  const openManage = async () => {
     setOpen(false);
+    setMembersError("");
+    setMembersLoading(true);
+    setManageOpen(true);
+    try {
+      const res = await fetch("/api/members");
+      if (!res.ok) throw new Error(await res.text());
+      setMembers(await res.json());
+    } catch (err: unknown) {
+      setMembersError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setMembersLoading(false);
+    }
+  };
+
+  const removeMember = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/members/${userId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await res.text());
+      setMembers((prev) => prev.filter((m) => m.userId !== userId));
+    } catch (err: unknown) {
+      setMembersError(err instanceof Error ? err.message : "Something went wrong");
+    }
   };
 
   const openInvite = () => {
@@ -195,13 +226,19 @@ export function BudgetSwitcher() {
                   }}
                 >
                   {m.organization.name}
-                  {m.organization.id === organization?.id && (
-                    <span
-                      style={{ fontSize: 10, fontWeight: 700, color: C.accent }}
-                    >
-                      ✓
-                    </span>
-                  )}
+                  <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    {m.organization.membersCount > 1 && (
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.45, flexShrink: 0 }}>
+                        <circle cx="5.5" cy="5" r="2.5" fill="currentColor" />
+                        <path d="M1 13c0-2.485 2.015-4.5 4.5-4.5S10 10.515 10 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+                        <circle cx="11" cy="5" r="2" fill="currentColor" opacity="0.7" />
+                        <path d="M13 13c0-1.657-1.343-3-3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" opacity="0.7" />
+                      </svg>
+                    )}
+                    {m.organization.id === organization?.id && (
+                      <span style={{ fontSize: 10, fontWeight: 700, color: C.accent }}>✓</span>
+                    )}
+                  </span>
                 </button>
               ))}
               <div
@@ -224,23 +261,44 @@ export function BudgetSwitcher() {
               >
                 + New Budget
               </button>
-              <button
-                onClick={openInvite}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "8px 10px",
-                  borderRadius: 7,
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  fontSize: 13.5,
-                  color: C.muted,
-                  background: "transparent",
-                }}
-              >
-                Invite partner
-              </button>
+              {isOwner && (
+                <button
+                  onClick={openInvite}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "8px 10px",
+                    borderRadius: 7,
+                    border: "none",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    fontSize: 13.5,
+                    color: C.muted,
+                    background: "transparent",
+                  }}
+                >
+                  Invite collaborator
+                </button>
+              )}
+              {organization?.membersCount != null && organization.membersCount > 1 && (
+                <button
+                  onClick={openManage}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "8px 10px",
+                    borderRadius: 7,
+                    border: "none",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    fontSize: 13.5,
+                    color: C.muted,
+                    background: "transparent",
+                  }}
+                >
+                  Manage collaborators
+                </button>
+              )}
             </div>
           </>
         )}
@@ -394,7 +452,7 @@ export function BudgetSwitcher() {
               }}
             >
               <div style={{ fontSize: 17, fontWeight: 800, color: C.text, letterSpacing: -0.4 }}>
-                Invite a partner
+                Invite a collaborator
               </div>
               <button
                 onClick={() => setInviteOpen(false)}
@@ -454,7 +512,7 @@ export function BudgetSwitcher() {
             ) : (
               <form onSubmit={sendInvite}>
                 <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>
-                  Enter your partner&apos;s email to invite them to <strong>{organization?.name}</strong>.
+                  Enter your collaborator&apos;s email to invite them to <strong>{organization?.name}</strong>.
                 </div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                   <input
@@ -471,7 +529,7 @@ export function BudgetSwitcher() {
                       color: C.text,
                       background: C.surf,
                     }}
-                    placeholder="partner@example.com"
+                    placeholder="collaborator@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={inviteLoading}
@@ -500,6 +558,139 @@ export function BudgetSwitcher() {
                   <div style={{ fontSize: 12, color: "#dc2626" }}>{inviteError}</div>
                 )}
               </form>
+            )}
+          </div>
+        </>
+      )}
+      {manageOpen && (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 100,
+              background: "rgba(15,23,42,0.4)",
+              backdropFilter: "blur(2px)",
+            }}
+            onClick={() => setManageOpen(false)}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              zIndex: 101,
+              background: C.surf,
+              border: `1px solid ${C.border}`,
+              borderRadius: 16,
+              padding: 36,
+              width: "100%",
+              maxWidth: 440,
+              boxShadow: "0 16px 48px rgba(0,0,0,0.15)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 20,
+              }}
+            >
+              <div style={{ fontSize: 17, fontWeight: 800, color: C.text, letterSpacing: -0.4 }}>
+                Collaborators
+              </div>
+              <button
+                onClick={() => setManageOpen(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: C.muted,
+                  fontSize: 20,
+                  lineHeight: 1,
+                  padding: 2,
+                }}
+              >
+                ×
+              </button>
+            </div>
+            {membersLoading ? (
+              <div style={{ fontSize: 14, color: C.muted }}>Loading…</div>
+            ) : membersError ? (
+              <div style={{ fontSize: 13, color: "#dc2626" }}>{membersError}</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {members.map((m) => {
+                  const name = [m.firstName, m.lastName].filter(Boolean).join(" ") || m.identifier;
+                  const canRemove = members.some((x) => x.isCurrentUser && x.isCreator) && !m.isCreator;
+                  const canLeave = m.isCurrentUser && !m.isCreator;
+                  return (
+                    <div
+                      key={m.userId}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        background: m.isCurrentUser ? "#f8fafc" : "transparent",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
+                          {name}
+                          {m.isCreator && (
+                            <span style={{ fontSize: 11, fontWeight: 500, color: C.subtle, marginLeft: 6 }}>
+                              owner
+                            </span>
+                          )}
+                        </div>
+                        {name !== m.identifier && (
+                          <div style={{ fontSize: 12, color: C.muted }}>{m.identifier}</div>
+                        )}
+                      </div>
+                      {canRemove && (
+                        <button
+                          onClick={() => removeMember(m.userId)}
+                          style={{
+                            padding: "4px 10px",
+                            background: "transparent",
+                            color: "#dc2626",
+                            border: "1px solid #fca5a5",
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                      {canLeave && (
+                        <button
+                          onClick={() => removeMember(m.userId)}
+                          style={{
+                            padding: "4px 10px",
+                            background: "transparent",
+                            color: C.muted,
+                            border: `1px solid ${C.border}`,
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          Leave
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </>

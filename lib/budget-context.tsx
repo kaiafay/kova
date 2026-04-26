@@ -51,6 +51,7 @@ interface BudgetContextValue {
   budgets: Budget[];
   checkins: Checkin[];
   settings: Settings;
+  isOwner: boolean;
   loaded: boolean;
   filterMonth: string;
   setFilterMonth: (m: string) => void;
@@ -72,6 +73,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [checkins, setCheckins] = useState<Checkin[]>([]);
   const [settings, setSettings] = useState<Settings>({ checkinDay: 0, merchantMap: {}, monthlyNotes: {} });
+  const [isOwner, setIsOwner] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [filterMonth, setFilterMonth] = useState(TODAY_MONTH);
 
@@ -89,6 +91,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       if (stRes.ok) {
         const s = await stRes.json();
         setSettings({ checkinDay: s.checkinDay ?? 0, merchantMap: s.merchantMap ?? {}, monthlyNotes: s.monthlyNotes ?? {} });
+        setIsOwner(s.isOwner ?? false);
       }
     } finally {
       setLoaded(true);
@@ -97,7 +100,6 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (organization) {
-      setLoaded(false);
       fetchAll();
     }
   }, [organization?.id, fetchAll]);
@@ -148,7 +150,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <BudgetContext.Provider value={{ transactions, budgets, checkins, settings, loaded, filterMonth, setFilterMonth, addTransactions, deleteTransaction, updateTransaction, upsertBudget, addCheckin, deleteCheckin, saveSettings, refetch: fetchAll }}>
+    <BudgetContext.Provider value={{ transactions, budgets, checkins, settings, isOwner, loaded, filterMonth, setFilterMonth, addTransactions, deleteTransaction, updateTransaction, upsertBudget, addCheckin, deleteCheckin, saveSettings, refetch: fetchAll }}>
       {children}
     </BudgetContext.Provider>
   );
