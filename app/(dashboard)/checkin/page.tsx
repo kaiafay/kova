@@ -7,6 +7,7 @@ const Desktop = dynamic(() => import("./_desktop"), { ssr: false });
 
 export default function CheckinPage() {
   const tier = useDeviceTier();
+  if (!tier) return null;
   if (tier === "mobile") return (
     <DesktopOnlyStub
       title="Check-in"
