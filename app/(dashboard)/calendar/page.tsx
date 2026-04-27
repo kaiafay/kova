@@ -110,6 +110,14 @@ export default function CalendarPage() {
 
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "28px 24px" }}>
+      <div className="kova-mobile-only" style={{ ...card }}>
+        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Calendar</div>
+        <div style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.5 }}>
+          Calendar is available on desktop only. Open Kova on desktop for monthly bill and transaction date review.
+        </div>
+      </div>
+
+      <div className="kova-desktop-only">
       {/* Header */}
       <div
         style={{
@@ -278,6 +286,7 @@ export default function CalendarPage() {
             {l.label}
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

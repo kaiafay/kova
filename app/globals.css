@@ -10,3 +10,160 @@ body {
   background: #f8fafc;
   color: #0f172a;
 }
+
+.kova-overview-kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (min-width: 768px) {
+  .kova-overview-kpi-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.kova-two-col-mobile {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .kova-two-col-mobile {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.kova-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.kova-txn-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .kova-txn-form-grid {
+    grid-template-columns: 150px 190px auto 130px 1fr auto;
+  }
+}
+
+.kova-nav-wrap {
+  position: relative;
+}
+
+.kova-nav-inner {
+  padding: 0 28px;
+}
+
+@media (max-width: 767px) {
+  .kova-nav-inner {
+    padding: 0 12px;
+  }
+}
+
+.kova-nav-links {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .kova-nav-links {
+    display: flex;
+    gap: 2px;
+  }
+}
+
+.kova-nav-hamburger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .kova-nav-hamburger {
+    display: none;
+  }
+}
+
+.kova-mobile-menu {
+  display: none;
+}
+
+.kova-mobile-menu.open {
+  display: flex;
+  position: absolute;
+  top: 60px;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+@media (min-width: 768px) {
+  .kova-mobile-menu,
+  .kova-mobile-menu.open {
+    display: none;
+  }
+}
+
+.kova-checkin-label-mobile {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .kova-checkin-label-mobile {
+    display: inline;
+  }
+}
+
+.kova-checkin-desktop-only {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .kova-checkin-desktop-only {
+    display: flex !important;
+  }
+}
+
+.kova-mobile-only {
+  display: block !important;
+}
+
+.kova-desktop-only {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .kova-mobile-only {
+    display: none !important;
+  }
+
+  .kova-desktop-only {
+    display: block !important;
+  }
+}
+
+.kova-settings-mobile-note {
+  display: block;
+}
+
+.kova-settings-desktop-content {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .kova-settings-mobile-note {
+    display: none;
+  }
+
+  .kova-settings-desktop-content {
+    display: block;
+  }
+}

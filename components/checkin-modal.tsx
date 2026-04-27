@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const C = { bg:"#f8fafc", surf:"#ffffff", border:"#e2e8f0", borderL:"#f1f5f9", text:"#0f172a", muted:"#64748b", subtle:"#94a3b8", green:"#16a34a", red:"#dc2626", accent:"#2563eb", amber:"#d97706" };
 const fmt = (n: number) => `$${Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
@@ -30,6 +30,15 @@ interface CheckinModalProps {
 
 export function CheckinModal({ weeklyData, dueSoon, onDismiss, onClose }: CheckinModalProps) {
   const [weeklyNotes, setWeeklyNotes] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   const inp = { background: C.surf, border: `1px solid ${C.border}`, color: C.text, padding: "9px 12px", borderRadius: 8, fontSize: 13.5, width: "100%", boxSizing: "border-box" as const, outline: "none", fontFamily: "inherit" };
   const btn = (v = "primary") => ({
@@ -42,15 +51,30 @@ export function CheckinModal({ weeklyData, dueSoon, onDismiss, onClose }: Checki
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={{ background: C.surf, borderRadius: 16, padding: 32, maxWidth: 560, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+      <div style={{ background: C.surf, borderRadius: 16, padding: isMobile ? 20 : 32, maxWidth: 560, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
           <div>
             <div style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: -0.5 }}>Kova Check-in</div>
-            <div style={{ fontSize: 13.5, color: C.muted, marginTop: 4 }}>Here&apos;s your weekly recap from Kova.</div>
+            <div style={{ fontSize: 13.5, color: C.muted, marginTop: 4 }}>
+              {isMobile ? "It's time for check-in. Please head to desktop to complete it." : "Here's your weekly recap from Kova."}
+            </div>
           </div>
           <button style={{ ...btn("ghost"), padding: "4px 8px", fontSize: 18, color: C.subtle }} onClick={onClose}>✕</button>
         </div>
 
+        {isMobile ? (
+          <div>
+            <div style={{ background: "#eff6ff", border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 18 }}>
+              <div style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.55 }}>
+                Kova check-ins are desktop-only so you can review the full budget context before confirming.
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button style={btn()} onClick={onClose}>Okay</button>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* AI Summary stub */}
         <div style={{ background: "linear-gradient(135deg,#eff6ff,#f0fdf4)", border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 20 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.accent, textTransform: "uppercase" as const, letterSpacing: 0.6, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
@@ -117,6 +141,8 @@ export function CheckinModal({ weeklyData, dueSoon, onDismiss, onClose }: Checki
           <button style={btn("secondary")} onClick={() => onDismiss(weeklyNotes, true)}>Save &amp; Close</button>
           <button style={btn()} onClick={() => onDismiss(weeklyNotes, false)}>Done</button>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -111,6 +111,14 @@ export default function CheckinPage() {
 
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "28px 24px" }}>
+      <div className="kova-mobile-only" style={{ ...card }}>
+        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Check-in</div>
+        <div style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.5 }}>
+          Weekly check-in is available on desktop only so you can review the full budget context before confirming.
+        </div>
+      </div>
+
+      <div className="kova-desktop-only">
       {/* Page title */}
       <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, marginBottom: 24 }}>
         Check-in
@@ -410,6 +418,7 @@ export default function CheckinPage() {
             ))}
           </div>
         )}
+      </div>
       </div>
     </div>
   );
