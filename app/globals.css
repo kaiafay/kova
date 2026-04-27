@@ -10,3 +10,69 @@ body {
   background: #f8fafc;
   color: #0f172a;
 }
+
+.kova-overview-kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (min-width: 768px) {
+  .kova-overview-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .kova-overview-kpi-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.kova-two-col-mobile {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .kova-two-col-mobile {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.kova-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.kova-txn-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .kova-txn-form-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+  }
+}
+
+.kova-nav-wrap {
+  position: relative;
+}
+
+.kova-nav-inner {
+  padding: 0 28px;
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .kova-nav-inner {
+    padding: 0 16px;
+  }
+}
+
+@media (max-width: 767px) {
+  .kova-nav-inner {
+    padding: 0 12px;
+  }
+}

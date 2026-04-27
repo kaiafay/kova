@@ -15,7 +15,7 @@ const C = {
   accent: "#2563eb",
 };
 
-export function BudgetSwitcher() {
+export function BudgetSwitcher({ compact = false }: { compact?: boolean }) {
   const { organization } = useOrganization();
   const { userMemberships, setActive, createOrganization } =
     useOrganizationList({ userMemberships: true });
@@ -131,7 +131,7 @@ export function BudgetSwitcher() {
           display: "flex",
           alignItems: "center",
           gap: 8,
-          marginRight: 28,
+          marginRight: compact ? 14 : 28,
         }}
       >
         <KovaGem size={24} />
@@ -151,7 +151,7 @@ export function BudgetSwitcher() {
         >
           <span
             style={{
-              fontSize: 17,
+              fontSize: compact ? 15 : 17,
               fontWeight: 800,
               color: C.accent,
               letterSpacing: -0.5,
@@ -159,14 +159,39 @@ export function BudgetSwitcher() {
           >
             {organization?.name ?? "Kova"}
           </span>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path
-              d="M2 4l4 4 4-4"
-              stroke={C.muted}
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <g
+              style={{
+                opacity: open ? 0 : 1,
+                transform: open ? "rotate(-8deg) scale(0.97)" : "rotate(0deg) scale(1)",
+                transformOrigin: "6px 6px",
+                transition: "opacity 210ms ease, transform 250ms ease",
+              }}
+            >
+              <path
+                d="M2 4l4 4 4-4"
+                stroke={C.muted}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
+            <g
+              style={{
+                opacity: open ? 1 : 0,
+                transform: open ? "rotate(0deg) scale(1)" : "rotate(8deg) scale(0.97)",
+                transformOrigin: "6px 6px",
+                transition: "opacity 210ms ease, transform 250ms ease",
+              }}
+            >
+              <path
+                d="M2 8l4-4 4 4"
+                stroke={C.muted}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
           </svg>
         </button>
 
