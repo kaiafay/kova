@@ -76,23 +76,51 @@ export function Nav({ onCheckin }: { onCheckin: () => void }) {
           {isMobile && (
             <button
               onClick={() => setMobileOpen(v => !v)}
-              style={{ border: `1px solid ${C.border}`, background: "transparent", borderRadius: 8, minWidth: 44, minHeight: 44, cursor: "pointer" }}
+              style={{
+                border: `1px solid ${C.border}`,
+                background: "transparent",
+                borderRadius: 8,
+                width: 44,
+                height: 44,
+                padding: 0,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                lineHeight: 0,
+              }}
               aria-label="Toggle navigation"
               aria-expanded={mobileOpen}
             >
-              <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
-                {mobileOpen ? (
-                  <>
-                    <line x1="1" y1="1" x2="17" y2="13" stroke={C.muted} strokeWidth="2" strokeLinecap="round"/>
-                    <line x1="17" y1="1" x2="1" y2="13" stroke={C.muted} strokeWidth="2" strokeLinecap="round"/>
-                  </>
-                ) : (
-                  <>
-                    <line x1="0" y1="1" x2="18" y2="1" stroke={C.muted} strokeWidth="2" strokeLinecap="round"/>
-                    <line x1="0" y1="7" x2="18" y2="7" stroke={C.muted} strokeWidth="2" strokeLinecap="round"/>
-                    <line x1="0" y1="13" x2="18" y2="13" stroke={C.muted} strokeWidth="2" strokeLinecap="round"/>
-                  </>
-                )}
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                <g
+                  style={{
+                    opacity: mobileOpen ? 0 : 1,
+                    transform: mobileOpen ? "rotate(-8deg) scale(0.97)" : "rotate(0deg) scale(1)",
+                    transformOrigin: "9px 9px",
+                    transition: "opacity 180ms ease, transform 220ms ease",
+                  }}
+                >
+                  <line x1="2" y1="4" x2="16" y2="4" stroke={C.muted} strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="2" y1="9" x2="16" y2="9" stroke={C.muted} strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="2" y1="14" x2="16" y2="14" stroke={C.muted} strokeWidth="2" strokeLinecap="round"/>
+                </g>
+                <g
+                  style={{
+                    opacity: mobileOpen ? 1 : 0,
+                    transform: mobileOpen ? "rotate(0deg) scale(1)" : "rotate(8deg) scale(0.97)",
+                    transformOrigin: "9px 9px",
+                    transition: "opacity 180ms ease, transform 220ms ease",
+                  }}
+                >
+                  <polyline
+                    points="4,11 9,6 14,11"
+                    stroke={C.muted}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
               </svg>
             </button>
           )}

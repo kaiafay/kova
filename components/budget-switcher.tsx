@@ -159,14 +159,39 @@ export function BudgetSwitcher() {
           >
             {organization?.name ?? "Kova"}
           </span>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path
-              d="M2 4l4 4 4-4"
-              stroke={C.muted}
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <g
+              style={{
+                opacity: open ? 0 : 1,
+                transform: open ? "rotate(-8deg) scale(0.97)" : "rotate(0deg) scale(1)",
+                transformOrigin: "6px 6px",
+                transition: "opacity 210ms ease, transform 250ms ease",
+              }}
+            >
+              <path
+                d="M2 4l4 4 4-4"
+                stroke={C.muted}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
+            <g
+              style={{
+                opacity: open ? 1 : 0,
+                transform: open ? "rotate(0deg) scale(1)" : "rotate(8deg) scale(0.97)",
+                transformOrigin: "6px 6px",
+                transition: "opacity 210ms ease, transform 250ms ease",
+              }}
+            >
+              <path
+                d="M2 8l4-4 4 4"
+                stroke={C.muted}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
           </svg>
         </button>
 
