@@ -17,25 +17,37 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   const { transactions, budgets, checkins, settings, loaded, filterMonth, addCheckin, saveSettings, refetch } = useBudget();
   const [showCheckin, setShowCheckin] = useState(false);
   const [weeklyDismissed, setWeeklyDismissed] = useState<string | null>(null);
+  const [staleDataWarning, setStaleDataWarning] = useState(false);
 
   const lastFingerprint = useRef<string | null>(null);
   const lastOrgId = useRef<string | undefined>(undefined);
+  const abortRef = useRef<AbortController | null>(null);
+  const failureCountRef = useRef(0);
+
   const checkForUpdates = useCallback(async () => {
     if (!organization) return;
     if (organization.id !== lastOrgId.current) {
       lastOrgId.current = organization.id;
       lastFingerprint.current = null;
     }
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
     try {
-      const res = await fetch("/api/last-updated");
+      const res = await fetch("/api/last-updated", { signal: abortRef.current.signal });
       if (!res.ok) return;
       const { fingerprint } = await res.json();
       if (lastFingerprint.current !== null && lastFingerprint.current !== fingerprint) {
         await refetch();
       }
       lastFingerprint.current = fingerprint;
-    } catch {
-      // ignore network errors during polling
+      failureCountRef.current = 0;
+      setStaleDataWarning(false);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      failureCountRef.current++;
+      if (failureCountRef.current >= 3) {
+        setStaleDataWarning(true);
+      }
     }
   }, [organization, refetch]);
   usePolling(checkForUpdates, 20_000);
@@ -134,9 +146,6 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     localStorage.setItem("kova_weekly_dismissed", thisWeekSunday);
     setWeeklyDismissed(thisWeekSunday);
 
-    const monthTxnsFiltered = transactions.filter(t => t.date.startsWith(filterMonth));
-    const monthOut = monthTxnsFiltered.filter(t => t.type !== "INCOME").reduce((s, t) => s + parseFloat(t.amount), 0);
-
     await addCheckin({
       date: TODAY_STR,
       weekSpend: weeklyData.weekSpend,
@@ -163,6 +172,15 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", color: "#0f172a" }}>
+      {staleDataWarning && (
+        <div style={{
+          background: "#fef3c7", borderBottom: "1px solid #fbbf24",
+          padding: "8px 20px", fontSize: 13, color: "#92400e",
+          textAlign: "center",
+        }}>
+          Unable to reach the server — data may be out of date.
+        </div>
+      )}
       {showCheckin && (
         <CheckinModal
           weeklyData={weeklyData}

@@ -11,13 +11,27 @@ export async function GET() {
   const [orgSettings] = await db.select().from(settings).where(eq(settings.orgId, orgId));
   const creatorId = orgSettings?.creatorId ?? null;
 
-  const clerk = await clerkClient();
-  const { data: memberships } = await clerk.organizations.getOrganizationMembershipList({
-    organizationId: orgId,
-    limit: 100,
-  });
+  let allMemberships;
+  try {
+    const clerk = await clerkClient();
+    allMemberships = [];
+    let offset = 0;
+    const pageSize = 100;
+    while (true) {
+      const { data, totalCount } = await clerk.organizations.getOrganizationMembershipList({
+        organizationId: orgId,
+        limit: pageSize,
+        offset,
+      });
+      allMemberships.push(...data);
+      offset += pageSize;
+      if (allMemberships.length >= totalCount) break;
+    }
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to fetch members" }, { status: 500 });
+  }
 
-  const members = memberships.map((m) => ({
+  const members = allMemberships.map((m) => ({
     userId: m.publicUserData?.userId ?? "",
     firstName: m.publicUserData?.firstName ?? null,
     lastName: m.publicUserData?.lastName ?? null,

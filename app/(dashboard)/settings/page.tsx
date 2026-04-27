@@ -197,7 +197,7 @@ function BudgetTargetsTab() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await Promise.all(
+      const results = await Promise.allSettled(
         rows.map((r) =>
           upsertBudget({
             name: r.name,
@@ -208,8 +208,13 @@ function BudgetTargetsTab() {
           })
         )
       );
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      const failures = results.filter(r => r.status === "rejected").length;
+      if (failures > 0) {
+        alert(`${failures} budget${failures > 1 ? "s" : ""} failed to save. Please try again.`);
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      }
     } finally {
       setSaving(false);
     }
@@ -625,7 +630,7 @@ function DebtBalancesTab() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await Promise.all(
+      const results = await Promise.allSettled(
         rows.map((r) =>
           upsertBudget({
             name: r.name,
@@ -636,8 +641,13 @@ function DebtBalancesTab() {
           })
         )
       );
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      const failures = results.filter(r => r.status === "rejected").length;
+      if (failures > 0) {
+        alert(`${failures} balance${failures > 1 ? "s" : ""} failed to save. Please try again.`);
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      }
     } finally {
       setSaving(false);
     }
@@ -751,13 +761,17 @@ function DebtBalancesTab() {
 function CheckinDayTab() {
   const { settings, saveSettings } = useBudget();
   const [selected, setSelected] = useState(settings.checkinDay);
+  const [startingBalanceDraft, setStartingBalanceDraft] = useState(String(settings.startingBalance ?? 0));
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await saveSettings({ checkinDay: selected });
+      await saveSettings({
+        checkinDay: selected,
+        startingBalance: parseFloat(startingBalanceDraft) || 0,
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } finally {
@@ -843,9 +857,30 @@ function CheckinDayTab() {
           )}
         </div>
 
+        {/* Starting balance */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>
+            Balance Trend — Starting Balance
+          </div>
+          <div style={{ position: "relative", maxWidth: 200 }}>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: 13.5, pointerEvents: "none" }}>$</span>
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              style={{ ...inp, paddingLeft: 22, maxWidth: 200 }}
+              value={startingBalanceDraft}
+              onChange={e => { setStartingBalanceDraft(e.target.value); setSaved(false); }}
+            />
+          </div>
+          <div style={{ fontSize: 12, color: C.subtle, marginTop: 6 }}>
+            Used as the opening balance for the monthly balance trend chart on the dashboard.
+          </div>
+        </div>
+
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button style={btn()} onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : "Save Check-in Day"}
+            {saving ? "Saving…" : "Save Settings"}
           </button>
           {saved && <SavedBadge />}
         </div>

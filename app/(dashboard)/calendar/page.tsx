@@ -63,7 +63,12 @@ export default function CalendarPage() {
   const [calMonth, setCalMonth] = useState(todayMonth);
 
   const calData = useMemo(() => {
-    const [yr, mo] = calMonth.split("-").map(Number);
+    const parts = calMonth.split("-").map(Number);
+    const yr = parts[0];
+    const mo = parts[1];
+    if (!yr || !mo || mo < 1 || mo > 12 || yr < 2000 || yr > 2100) {
+      return { firstDay: 0, daysInMonth: 0, txnsByDay: {}, billsByDay: {} };
+    }
     const firstDay = new Date(yr, mo - 1, 1).getDay();
     const daysInMonth = new Date(yr, mo, 0).getDate();
 

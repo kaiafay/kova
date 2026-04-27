@@ -65,23 +65,32 @@ const fmt = (n: number) =>
 const todayStr = new Date().toISOString().slice(0, 10);
 
 // ── CSV helpers ────────────────────────────────────────────────────────────
-const parseWFDate = (str: string) => {
+const MAX_CSV_BYTES = 5 * 1024 * 1024;
+
+const parseWFDate = (str: string): string | null => {
   const clean = str.replace(/"/g, "").trim();
-  const [m, d, y] = clean.split("/");
-  if (!y) return str;
-  return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  const parts = clean.split("/");
+  if (parts.length !== 3) return null;
+  const mo = parseInt(parts[0], 10);
+  const dy = parseInt(parts[1], 10);
+  const yr = parseInt(parts[2], 10);
+  if (isNaN(mo) || isNaN(dy) || isNaN(yr)) return null;
+  if (mo < 1 || mo > 12 || dy < 1 || dy > 31 || yr < 2000 || yr > 2100) return null;
+  return `${yr}-${String(mo).padStart(2, "0")}-${String(dy).padStart(2, "0")}`;
 };
 const parseWFCSV = (text: string) => {
   const lines = text.trim().split("\n").filter(l => l.trim());
-  return lines.map(line => {
+  return lines.flatMap(line => {
     const cols = line.split(",").map(c => c.replace(/"/g, "").trim());
     const date = parseWFDate(cols[0]);
+    if (!date) return [];
     const rawAmount = parseFloat(cols[1]);
     const desc = cols[4] || cols[3] || "Unknown";
     const amount = Math.abs(rawAmount);
     const suggestedType = rawAmount >= 0 ? "INCOME" : "EXPENSES";
-    return { date, amount, description: desc, suggestedType, rawAmount };
-  }).filter(r => !isNaN(r.amount) && r.amount > 0);
+    if (isNaN(amount) || amount <= 0) return [];
+    return [{ date, amount, description: desc, suggestedType, rawAmount }];
+  });
 };
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -173,18 +182,25 @@ export default function TransactionsPage() {
 
   // ── CSV state ────────────────────────────────────────────────────────────
   const [csvRows, setCsvRows] = useState<CsvRow[]>([]);
+  const [csvError, setCsvError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleCSVFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_CSV_BYTES) {
+      setCsvError(`File too large (max 5 MB). This file is ${(file.size / 1024 / 1024).toFixed(1)} MB.`);
+      e.target.value = "";
+      return;
+    }
+    setCsvError(null);
     const reader = new FileReader();
     reader.onload = ev => {
       const text = ev.target?.result as string;
       const rows = parseWFCSV(text);
-      const existingKeys = new Set(transactions.map(t => `${t.date}|${t.amount}|${t.notes}`));
+      const existingKeys = new Set(transactions.map(t => `${t.date}|${t.name}|${t.amount}`));
       const mapped: CsvRow[] = rows.map((r, i) => {
-        const isDuplicate = existingKeys.has(`${r.date}|${r.amount}|${r.description}`);
+        const isDuplicate = existingKeys.has(`${r.date}|${r.description}|${r.amount}`);
         const category = settings.merchantMap[r.description] || "";
         const type = category
           ? (budgetMap[category]?.type || r.suggestedType)
@@ -201,6 +217,7 @@ export default function TransactionsPage() {
       });
       setCsvRows(mapped);
     };
+    reader.onerror = () => setCsvError("Failed to read file. Ensure it's a valid CSV.");
     reader.readAsText(file);
     e.target.value = "";
   };
@@ -371,6 +388,11 @@ export default function TransactionsPage() {
       {/* ── CSV Import tab ───────────────────────────────────────────────── */}
       {txnTab === "csv" && (
         <>
+          {csvError && (
+            <div style={{ marginBottom: 12, padding: "10px 16px", background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>
+              {csvError}
+            </div>
+          )}
           {csvRows.length === 0 && (
             <div style={{ ...card, textAlign: "center", padding: 48 }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>📄</div>

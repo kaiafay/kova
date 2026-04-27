@@ -8,7 +8,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { userId, orgId } = await auth();
   if (!userId || !orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id: idParam } = await params;
-  const id = parseInt(idParam);
+  const id = parseInt(idParam, 10);
+  if (isNaN(id)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   await db.delete(checkins).where(and(eq(checkins.id, id), eq(checkins.orgId, orgId)));
   return NextResponse.json({ ok: true });
 }

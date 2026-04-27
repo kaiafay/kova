@@ -192,30 +192,24 @@ export default function TrendsPage() {
           }}
         >
           <div style={{ fontSize: 40, marginBottom: 14 }}>📈</div>
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 16,
-              marginBottom: 6,
-              color: C.text,
-            }}
-          >
-            Trends appear with 2+ months of data
-          </div>
-          <div style={{ fontSize: 13.5 }}>
-            Keep logging transactions and this view populates automatically.
-          </div>
-          {months.length === 1 && (
-            <div
-              style={{
-                marginTop: 12,
-                fontSize: 13,
-                color: C.accent,
-                fontWeight: 600,
-              }}
-            >
-              You have 1 month recorded — add transactions for another month to unlock trends.
-            </div>
+          {months.length === 0 ? (
+            <>
+              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: C.text }}>
+                No transactions yet
+              </div>
+              <div style={{ fontSize: 13.5 }}>
+                Add transactions to get started. Trends appear once you have 2+ months of data.
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: C.text }}>
+                Need at least 2 months of data
+              </div>
+              <div style={{ fontSize: 13.5 }}>
+                You have 1 month recorded — add transactions for another month to unlock trends.
+              </div>
+            </>
           )}
         </div>
       ) : (

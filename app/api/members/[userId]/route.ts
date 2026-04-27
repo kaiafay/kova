@@ -24,8 +24,12 @@ export async function DELETE(
     }
   }
 
-  const clerk = await clerkClient();
-  await clerk.organizations.deleteOrganizationMembership({ organizationId: orgId, userId: targetUserId });
-
-  return NextResponse.json({ ok: true });
+  try {
+    const clerk = await clerkClient();
+    await clerk.organizations.deleteOrganizationMembership({ organizationId: orgId, userId: targetUserId });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to remove member";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
