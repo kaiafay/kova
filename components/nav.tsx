@@ -27,15 +27,17 @@ export function Nav({ onCheckin }: { onCheckin: () => void }) {
   const pathname = usePathname();
   const tier = useDeviceTier();
   const isMobile = tier === "mobile";
+  const isTablet = tier === "tablet";
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const linkStyle = (active: boolean) => ({
-    padding: "7px 16px",
+    padding: isTablet ? "6px 10px" : "7px 16px",
     borderRadius: 7,
-    fontSize: 13.5,
+    fontSize: isTablet ? 12.5 : 13.5,
     fontWeight: 500,
     textDecoration: "none",
     transition: "all 0.12s",
+    whiteSpace: "nowrap" as const,
     background: active ? "#eff6ff" : "transparent",
     color: active ? C.accent : C.muted,
   });
@@ -43,18 +45,18 @@ export function Nav({ onCheckin }: { onCheckin: () => void }) {
   return (
     <div className="kova-nav-wrap">
       <div className="kova-nav-inner" style={{ background: C.surf, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", height: 60, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-        <BudgetSwitcher />
+        <BudgetSwitcher compact={isTablet} />
 
         {!isMobile && (
-          <div style={{ display: "flex", gap: 2 }}>
+          <div style={{ display: "flex", gap: isTablet ? 0 : 2, minWidth: 0 }}>
             {NAV_LINKS.map(({ href, label }) => (
               <Link key={href} href={href} style={linkStyle(pathname === href)}>{label}</Link>
             ))}
           </div>
         )}
 
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
-          {!isMobile && (
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: isTablet ? 8 : 12 }}>
+          {!isMobile && !isTablet && (
             <button
               onClick={onCheckin}
               style={{

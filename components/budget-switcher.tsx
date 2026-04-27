@@ -15,7 +15,7 @@ const C = {
   accent: "#2563eb",
 };
 
-export function BudgetSwitcher() {
+export function BudgetSwitcher({ compact = false }: { compact?: boolean }) {
   const { organization } = useOrganization();
   const { userMemberships, setActive, createOrganization } =
     useOrganizationList({ userMemberships: true });
@@ -131,7 +131,7 @@ export function BudgetSwitcher() {
           display: "flex",
           alignItems: "center",
           gap: 8,
-          marginRight: 28,
+          marginRight: compact ? 14 : 28,
         }}
       >
         <KovaGem size={24} />
@@ -151,7 +151,7 @@ export function BudgetSwitcher() {
         >
           <span
             style={{
-              fontSize: 17,
+              fontSize: compact ? 15 : 17,
               fontWeight: 800,
               color: C.accent,
               letterSpacing: -0.5,
