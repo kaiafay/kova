@@ -1,6 +1,8 @@
 "use client";
 import { useMemo, useState, useRef } from "react";
 import { useTransactionsData } from "./use-transactions-data";
+import { TRANSACTION_TYPES, TYPE_META as TYPE_META_STRICT } from "@/lib/transaction-types";
+const TYPE_META: Record<string, { color: string; bg: string; label: string }> = TYPE_META_STRICT;
 
 const C = {
   bg: "#f8fafc", surf: "#ffffff", border: "#e2e8f0", borderL: "#f1f5f9",
@@ -21,14 +23,6 @@ const th = { textAlign: "left" as const, padding: "8px 12px", color: C.subtle, f
 const td = { padding: "9px 12px", borderBottom: `1px solid ${C.borderL}`, color: C.text, verticalAlign: "middle" as const };
 const tabBtn = (active: boolean) => ({ padding: "8px 18px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 13.5, fontWeight: 500 as const, fontFamily: "inherit", transition: "all 0.12s", background: active ? "#eff6ff" : "transparent", color: active ? C.accent : C.muted });
 
-const TYPES = ["INCOME", "BILLS", "EXPENSES", "DEBT PAYMENT", "SUBSCRIPTIONS"];
-const TYPE_META: Record<string, { color: string; bg: string; label: string }> = {
-  "INCOME":        { color: "#16a34a", bg: "#dcfce7", label: "Income" },
-  "BILLS":         { color: "#0284c7", bg: "#e0f2fe", label: "Bills" },
-  "EXPENSES":      { color: "#7c3aed", bg: "#ede9fe", label: "Expenses" },
-  "DEBT PAYMENT":  { color: "#dc2626", bg: "#fee2e2", label: "Debt" },
-  "SUBSCRIPTIONS": { color: "#d97706", bg: "#fef3c7", label: "Subscriptions" },
-};
 const fmt = (n: number) => `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const badge = (type: string) => ({ display: "inline-block", padding: "2px 9px", borderRadius: 20, fontSize: 11, fontWeight: 700 as const, background: TYPE_META[type]?.bg || "#f1f5f9", color: TYPE_META[type]?.color || C.muted });
 
@@ -79,16 +73,22 @@ export function DesktopTransactions() {
   const [txnTab, setTxnTab] = useState<"manual" | "csv">("manual");
   const [form, setForm] = useState({ date: todayStr, name: "", type: "", amount: "", notes: "" });
   const [batch, setBatch] = useState<BatchItem[]>([]);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  const pickName = (name: string) => { setForm(f => ({ ...f, name, type: budgetMap[name]?.type || "" })); };
+  const pickName = (name: string) => { setForm(f => ({ ...f, name, type: budgetMap[name]?.type || "" })); setFormError(null); };
   const addToBatch = () => {
-    if (!form.name || !form.amount || !form.date || !form.type) return;
+    if (!form.name) { setFormError("Select a category."); return; }
+    if (!form.type) { setFormError("Category has no type assigned — check your budget settings."); return; }
+    if (!form.amount) { setFormError("Enter an amount."); return; }
+    if (!form.date) { setFormError("Select a date."); return; }
+    setFormError(null);
     setBatch(b => [...b, { ...form, amount: parseFloat(form.amount), id: `${Date.now()}-${Math.random()}` }]);
     setForm(f => ({ ...f, name: "", type: "", amount: "", notes: "" }));
   };
   const commitBatch = async () => {
-    if (!batch.length) return;
-    await addTransactions(batch.map(b => ({ date: b.date, name: b.name, type: b.type, amount: String(b.amount), notes: b.notes })));
+    const validBatch = batch.filter(b => b.type);
+    if (!validBatch.length) return;
+    await addTransactions(validBatch.map(b => ({ date: b.date, name: b.name, type: b.type, amount: String(b.amount), notes: b.notes })));
     setBatch([]);
   };
 
@@ -105,7 +105,7 @@ export function DesktopTransactions() {
     reader.onload = ev => {
       const text = ev.target?.result as string;
       const rows = parseWFCSV(text);
-      const existingKeys = new Set(transactions.map(t => `${t.date}|${t.name}|${t.amount}`));
+      const existingKeys = new Set(transactions.map(t => `${t.date}|${t.notes}|${t.amount}`));
       setCsvRows(rows.map((r, i) => {
         const isDuplicate = existingKeys.has(`${r.date}|${r.description}|${r.amount}`);
         const category = settings.merchantMap[r.description] || "";
@@ -169,7 +169,7 @@ export function DesktopTransactions() {
             <input style={{ ...inp, flex: "0 0 150px", minWidth: 130 }} type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
             <select style={{ ...sel, flex: "0 0 190px", minWidth: 160 }} value={form.name} onChange={e => pickName(e.target.value)}>
               <option value="">— Category —</option>
-              {TYPES.map(type => (
+              {TRANSACTION_TYPES.map(type => (
                 <optgroup key={type} label={type}>
                   {budgets.filter(b => b.type === type).map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
                 </optgroup>
@@ -182,6 +182,7 @@ export function DesktopTransactions() {
             <input style={{ ...inp, flex: "1 1 200px", minWidth: 160 }} type="text" placeholder="Notes (optional)" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
             <button style={{ ...btn(), flex: "0 0 auto" }} onClick={addToBatch}>+ Add</button>
           </div>
+          {formError && <div style={{ marginTop: 8, padding: "8px 14px", background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>{formError}</div>}
           {batch.length > 0 && (
             <>
               <div style={{ fontSize: 12.5, color: C.muted, fontWeight: 500, marginBottom: 8 }}>{batch.length} pending — review before saving</div>
@@ -259,7 +260,7 @@ export function DesktopTransactions() {
                         <td style={td}>
                           <select style={{ ...sel, width: 150, padding: "5px 8px", fontSize: 12.5 }} value={row.category} onChange={e => updateCsvRow(row.id, "category", e.target.value)}>
                             <option value="">— Assign —</option>
-                            {TYPES.map(type => (<optgroup key={type} label={type}>{budgets.filter(b => b.type === type).map(b => <option key={b.name} value={b.name}>{b.name}</option>)}</optgroup>))}
+                            {TRANSACTION_TYPES.map(type => (<optgroup key={type} label={type}>{budgets.filter(b => b.type === type).map(b => <option key={b.name} value={b.name}>{b.name}</option>)}</optgroup>))}
                           </select>
                         </td>
                         <td style={td}>{row.type && <span style={badge(row.type)}>{TYPE_META[row.type]?.label || row.type}</span>}</td>
@@ -276,7 +277,7 @@ export function DesktopTransactions() {
 
       <div style={{ marginTop: 20 }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-          {["ALL", ...TYPES].map(t => (
+          {["ALL", ...TRANSACTION_TYPES].map(t => (
             <button key={t} style={{ ...btn("ghost"), padding: "5px 14px", fontSize: 12.5, background: filterType === t ? C.accent : "#f1f5f9", color: filterType === t ? "#fff" : C.muted }} onClick={() => setFilterType(t)}>
               {t === "ALL" ? "All" : TYPE_META[t]?.label || t}
             </button>
@@ -294,7 +295,7 @@ export function DesktopTransactions() {
                         <td style={td}><input style={{ ...inp, padding: "5px 8px", width: 130 }} type="date" value={editingTxn.date} onChange={e => setEditingTxn(x => x ? { ...x, date: e.target.value } : x)} /></td>
                         <td style={td}>
                           <select style={{ ...sel, padding: "5px 8px", width: 150 }} value={editingTxn.name} onChange={e => { const type = budgetMap[e.target.value]?.type || editingTxn.type; setEditingTxn(x => x ? { ...x, name: e.target.value, type } : x); }}>
-                            {TYPES.map(type => (<optgroup key={type} label={type}>{budgets.filter(b => b.type === type).map(b => <option key={b.name} value={b.name}>{b.name}</option>)}</optgroup>))}
+                            {TRANSACTION_TYPES.map(type => (<optgroup key={type} label={type}>{budgets.filter(b => b.type === type).map(b => <option key={b.name} value={b.name}>{b.name}</option>)}</optgroup>))}
                           </select>
                         </td>
                         <td style={td}><span style={badge(editingTxn.type)}>{TYPE_META[editingTxn.type]?.label || editingTxn.type}</span></td>

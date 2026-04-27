@@ -1,6 +1,8 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useBudget } from "@/lib/budget-context";
+import { TRANSACTION_TYPES, TYPE_META as TYPE_META_STRICT } from "@/lib/transaction-types";
+const TYPE_META: Record<string, { color: string; bg: string; label: string }> = TYPE_META_STRICT;
 
 const C = {
   bg: "#f8fafc", surf: "#ffffff", border: "#e2e8f0", borderL: "#f1f5f9",
@@ -42,14 +44,6 @@ const tabBtn = (active: boolean) => ({
   color: active ? C.accent : C.muted,
 });
 
-const TYPES = ["INCOME", "BILLS", "EXPENSES", "DEBT PAYMENT", "SUBSCRIPTIONS"];
-const TYPE_META: Record<string, { color: string; bg: string; label: string }> = {
-  "INCOME":        { color: "#16a34a", bg: "#dcfce7", label: "Income" },
-  "BILLS":         { color: "#0284c7", bg: "#e0f2fe", label: "Bills" },
-  "EXPENSES":      { color: "#7c3aed", bg: "#ede9fe", label: "Expenses" },
-  "DEBT PAYMENT":  { color: "#dc2626", bg: "#fee2e2", label: "Debt" },
-  "SUBSCRIPTIONS": { color: "#d97706", bg: "#fef3c7", label: "Subscriptions" },
-};
 const DAYS_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -82,6 +76,7 @@ function BudgetTargetsTab() {
   );
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const budgetKeys = budgets.map(b => b.name + b.type).join(",");
   useMemo(() => {
@@ -95,13 +90,13 @@ function BudgetTargetsTab() {
   };
 
   const handleSave = async () => {
-    setSaving(true);
+    setSaving(true); setSaveError(null);
     try {
       const results = await Promise.allSettled(
         rows.map(r => upsertBudget({ name: r.name, type: r.type, budgetAmount: r.budgetAmount || "0", dueDay: r.dueDay, startingBalance: r.startingBalance }))
       );
       const failures = results.filter(r => r.status === "rejected").length;
-      if (failures > 0) alert(`${failures} budget${failures > 1 ? "s" : ""} failed to save. Please try again.`);
+      if (failures > 0) setSaveError(`${failures} budget${failures > 1 ? "s" : ""} failed to save. Please try again.`);
       else { setSaved(true); setTimeout(() => setSaved(false), 2500); }
     } finally { setSaving(false); }
   };
@@ -118,8 +113,9 @@ function BudgetTargetsTab() {
           <button style={btn()} onClick={handleSave} disabled={saving}>{saving ? "Saving…" : "Save Budget Targets"}</button>
         </div>
       </div>
+      {saveError && <div style={{ marginBottom: 16, padding: "10px 16px", background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>{saveError}</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        {TYPES.map(type => {
+        {TRANSACTION_TYPES.map(type => {
           const typeRows = rows.filter(r => r.type === type);
           if (typeRows.length === 0) return null;
           return (
@@ -183,7 +179,7 @@ function CategoriesTab() {
 
   const grouped = useMemo(() => {
     const g: Record<string, typeof budgets> = {};
-    TYPES.forEach(t => { g[t] = []; });
+    TRANSACTION_TYPES.forEach(t => { g[t] = []; });
     budgets.forEach(b => { if (g[b.type]) g[b.type].push(b); });
     return g;
   }, [budgets]);
@@ -204,7 +200,7 @@ function CategoriesTab() {
           <div style={{ flex: "1 1 140px", minWidth: 130 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 5 }}>Type</label>
             <select style={sel} value={newType} onChange={e => setNewType(e.target.value)}>
-              {TYPES.map(t => <option key={t} value={t}>{TYPE_META[t].label}</option>)}
+              {TRANSACTION_TYPES.map(t => <option key={t} value={t}>{TYPE_META[t].label}</option>)}
             </select>
           </div>
           <div style={{ flex: "1 1 120px", minWidth: 110 }}>
@@ -221,7 +217,7 @@ function CategoriesTab() {
         {addError && <div style={{ fontSize: 12.5, color: C.red, marginTop: 8 }}>{addError}</div>}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {TYPES.map(type => {
+        {TRANSACTION_TYPES.map(type => {
           const cats = grouped[type];
           if (cats.length === 0) return null;
           return (
@@ -281,14 +277,16 @@ function DebtBalancesTab() {
     setSaved(false);
   };
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const handleSave = async () => {
-    setSaving(true);
+    setSaving(true); setSaveError(null);
     try {
       const results = await Promise.allSettled(
         rows.map(r => upsertBudget({ name: r.name, type: r.type, budgetAmount: r.budgetAmount, dueDay: r.dueDay, startingBalance: r.startingBalance || "0" }))
       );
       const failures = results.filter(r => r.status === "rejected").length;
-      if (failures > 0) alert(`${failures} balance${failures > 1 ? "s" : ""} failed to save. Please try again.`);
+      if (failures > 0) setSaveError(`${failures} balance${failures > 1 ? "s" : ""} failed to save. Please try again.`);
       else { setSaved(true); setTimeout(() => setSaved(false), 2500); }
     } finally { setSaving(false); }
   };
@@ -307,6 +305,7 @@ function DebtBalancesTab() {
           </div>
         )}
       </div>
+      {saveError && <div style={{ marginBottom: 16, padding: "10px 16px", background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>{saveError}</div>}
       {rows.length === 0 ? (
         <div style={{ ...card, textAlign: "center", padding: "48px 40px", color: C.muted }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 6 }}>No debt categories</div>

@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
   }
   const inserted = await db.insert(settings).values({
     orgId,
+    creatorId: userId,
     checkinDay: body.checkinDay ?? 0,
     startingBalance: body.startingBalance != null ? String(body.startingBalance) : "0",
     merchantMap: body.merchantMap ?? {},

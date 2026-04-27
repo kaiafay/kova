@@ -5,6 +5,8 @@ import {
   ResponsiveContainer, LineChart, Line, CartesianGrid,
 } from "recharts";
 import { useOverviewData } from "./use-overview-data";
+import { TRANSACTION_TYPES, TYPE_META as TYPE_META_STRICT } from "@/lib/transaction-types";
+const TYPE_META: Record<string, { color: string; bg: string; label: string }> = TYPE_META_STRICT;
 
 const C = {
   bg: "#f8fafc", surf: "#ffffff", border: "#e2e8f0", borderL: "#f1f5f9",
@@ -16,14 +18,6 @@ const inp = { background: C.surf, border: `1px solid ${C.border}`, color: C.text
 const th = { textAlign: "left" as const, padding: "8px 12px", color: C.subtle, fontSize: 11, fontWeight: 700 as const, textTransform: "uppercase" as const, letterSpacing: 0.5, borderBottom: `1px solid ${C.borderL}` };
 const td = { padding: "9px 12px", borderBottom: `1px solid ${C.borderL}`, color: C.text, verticalAlign: "middle" as const };
 
-const TYPES = ["INCOME", "BILLS", "EXPENSES", "DEBT PAYMENT", "SUBSCRIPTIONS"];
-const TYPE_META: Record<string, { color: string; bg: string; label: string }> = {
-  "INCOME":        { color: "#16a34a", bg: "#dcfce7", label: "Income" },
-  "BILLS":         { color: "#0284c7", bg: "#e0f2fe", label: "Bills" },
-  "EXPENSES":      { color: "#7c3aed", bg: "#ede9fe", label: "Expenses" },
-  "DEBT PAYMENT":  { color: "#dc2626", bg: "#fee2e2", label: "Debt" },
-  "SUBSCRIPTIONS": { color: "#d97706", bg: "#fef3c7", label: "Subscriptions" },
-};
 const DONUT_COLORS = ["#6366f1","#0ea5e9","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#84cc16","#f97316","#ec4899","#14b8a6","#a855f7","#3b82f6","#22c55e","#eab308"];
 const fmt = (n: number) => `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtK = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : fmt(n);
@@ -85,7 +79,7 @@ export function DesktopOverview() {
 
   const typeGroups = useMemo(() => {
     const g: Record<string, { name: string; budget: number; actual: number }[]> = {};
-    TYPES.forEach(type => {
+    TRANSACTION_TYPES.forEach(type => {
       g[type] = Object.entries(budgetMap)
         .filter(([, v]) => v.type === type)
         .map(([name, v]) => ({
@@ -214,7 +208,7 @@ export function DesktopOverview() {
       </div>
 
       <div className="kova-two-col-mobile" style={{ gap: 14, marginBottom: 16 }}>
-        {TYPES.map(type => (
+        {TRANSACTION_TYPES.map(type => (
           <div key={type} style={card}>
             {sectionHead(type)}
             <div className="kova-table-scroll">

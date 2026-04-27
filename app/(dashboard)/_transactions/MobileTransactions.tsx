@@ -1,6 +1,8 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useTransactionsData } from "./use-transactions-data";
+import { TRANSACTION_TYPES, TYPE_META as TYPE_META_STRICT } from "@/lib/transaction-types";
+const TYPE_META: Record<string, { color: string; bg: string; label: string }> = TYPE_META_STRICT;
 
 const C = {
   bg: "#f8fafc", surf: "#ffffff", border: "#e2e8f0",
@@ -18,14 +20,6 @@ const btn = (v = "primary") => ({
   color: v === "primary" ? "#fff" : C.muted,
 });
 
-const TYPES = ["INCOME", "BILLS", "EXPENSES", "DEBT PAYMENT", "SUBSCRIPTIONS"];
-const TYPE_META: Record<string, { color: string; bg: string; label: string }> = {
-  "INCOME":        { color: "#16a34a", bg: "#dcfce7", label: "Income" },
-  "BILLS":         { color: "#0284c7", bg: "#e0f2fe", label: "Bills" },
-  "EXPENSES":      { color: "#7c3aed", bg: "#ede9fe", label: "Expenses" },
-  "DEBT PAYMENT":  { color: "#dc2626", bg: "#fee2e2", label: "Debt" },
-  "SUBSCRIPTIONS": { color: "#d97706", bg: "#fef3c7", label: "Subscriptions" },
-};
 const fmt = (n: number) => `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const badge = (type: string) => ({ display: "inline-block", padding: "2px 9px", borderRadius: 20, fontSize: 11, fontWeight: 700 as const, background: TYPE_META[type]?.bg || "#f1f5f9", color: TYPE_META[type]?.color || C.muted });
 
@@ -49,20 +43,26 @@ export function MobileTransactions() {
 
   const [form, setForm] = useState({ date: todayStr, name: "", type: "", amount: "", notes: "" });
   const [batch, setBatch] = useState<BatchItem[]>([]);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const pickName = (name: string) => {
-    setForm(f => ({ ...f, name, type: budgetMap[name] || "" }));
+    setForm(f => ({ ...f, name, type: budgetMap[name] || "" })); setFormError(null);
   };
 
   const addToBatch = () => {
-    if (!form.name || !form.amount || !form.date || !form.type) return;
+    if (!form.name) { setFormError("Select a category."); return; }
+    if (!form.type) { setFormError("Category has no type assigned — check your budget settings."); return; }
+    if (!form.amount) { setFormError("Enter an amount."); return; }
+    if (!form.date) { setFormError("Select a date."); return; }
+    setFormError(null);
     setBatch(b => [...b, { ...form, amount: parseFloat(form.amount), id: `${Date.now()}-${Math.random()}` }]);
     setForm(f => ({ ...f, name: "", type: "", amount: "", notes: "" }));
   };
 
   const commitBatch = async () => {
-    if (!batch.length) return;
-    await addTransactions(batch.map(b => ({ date: b.date, name: b.name, type: b.type, amount: String(b.amount), notes: b.notes })));
+    const validBatch = batch.filter(b => b.type);
+    if (!validBatch.length) return;
+    await addTransactions(validBatch.map(b => ({ date: b.date, name: b.name, type: b.type, amount: String(b.amount), notes: b.notes })));
     setBatch([]);
   };
 
@@ -81,7 +81,7 @@ export function MobileTransactions() {
           <input style={inp} type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
           <select style={sel} value={form.name} onChange={e => pickName(e.target.value)}>
             <option value="">— Category —</option>
-            {TYPES.map(type => (
+            {TRANSACTION_TYPES.map(type => (
               <optgroup key={type} label={type}>
                 {budgets.filter(b => b.type === type).map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
               </optgroup>
@@ -91,6 +91,7 @@ export function MobileTransactions() {
           <input style={inp} type="text" placeholder="Notes (optional)" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
           <button style={btn()} onClick={addToBatch}>+ Add</button>
         </div>
+        {formError && <div style={{ marginTop: 10, padding: "8px 14px", background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>{formError}</div>}
         {batch.length > 0 && (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 8 }}>{batch.length} pending transaction{batch.length > 1 ? "s" : ""}</div>
