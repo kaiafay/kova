@@ -910,6 +910,25 @@ export default function SettingsPage() {
 
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "28px 24px" }}>
+      <div
+        className="kova-settings-mobile-note"
+        style={{
+          background: C.surf,
+          border: `1px solid ${C.border}`,
+          borderRadius: 12,
+          padding: 18,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+        }}
+      >
+        <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4, marginBottom: 8 }}>
+          Settings
+        </div>
+        <div style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.5 }}>
+          For full budgeting tools and table editing, open Kova in a desktop browser.
+        </div>
+      </div>
+
+      <div className="kova-settings-desktop-content">
       {/* Page title */}
       <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, marginBottom: 24 }}>
         Settings
@@ -946,6 +965,7 @@ export default function SettingsPage() {
       {activeTab === "categories" && <CategoriesTab />}
       {activeTab === "debt" && <DebtBalancesTab />}
       {activeTab === "checkin" && <CheckinDayTab />}
+      </div>
     </div>
   );
 }

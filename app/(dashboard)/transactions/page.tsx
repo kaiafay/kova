@@ -263,9 +263,122 @@ export default function TransactionsPage() {
       .sort((a, b) => b.date.localeCompare(a.date)),
     [monthTxns, filterType],
   );
+  const latestTxns = useMemo(
+    () => [...monthTxns].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8),
+    [monthTxns],
+  );
 
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "28px 24px" }}>
+      <div className="kova-mobile-only">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>Transactions</div>
+          <select
+            style={{
+              background: C.surf, border: `1px solid ${C.border}`, color: C.text,
+              padding: "7px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+            }}
+            value={filterMonth}
+            onChange={e => setFilterMonth(e.target.value)}
+          >
+            {months.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+
+        <div style={{ ...card, marginBottom: 14 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: C.muted,
+            textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 12,
+          }}>
+            Quick Add
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+            <input
+              style={inp}
+              type="date"
+              value={form.date}
+              onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+            />
+            <select style={sel} value={form.name} onChange={e => pickName(e.target.value)}>
+              <option value="">— Category —</option>
+              {TYPES.map(type => (
+                <optgroup key={type} label={type}>
+                  {budgets.filter(b => b.type === type).map(b => (
+                    <option key={b.name} value={b.name}>{b.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <input
+              style={inp}
+              type="number"
+              placeholder="Amount"
+              value={form.amount}
+              onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+              step="0.01"
+              min="0"
+            />
+            <input
+              style={inp}
+              type="text"
+              placeholder="Notes (optional)"
+              value={form.notes}
+              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+            />
+            <button style={btn()} onClick={addToBatch}>+ Add</button>
+          </div>
+
+          {batch.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 8 }}>
+                {batch.length} pending transaction{batch.length > 1 ? "s" : ""}
+              </div>
+              <button style={btn()} onClick={commitBatch}>
+                Save {batch.length}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div style={{ ...card, marginBottom: 14 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: C.muted,
+            textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 12,
+          }}>
+            Latest Transactions
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {latestTxns.map(t => (
+              <div key={t.id} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</div>
+                    <div style={{ fontSize: 12, color: C.muted }}>{t.date}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontWeight: 800, color: t.type === "INCOME" ? C.green : C.text }}>
+                      {fmt(parseFloat(t.amount))}
+                    </div>
+                    <span style={badge(t.type)}>{TYPE_META[t.type]?.label || t.type}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {latestTxns.length === 0 && (
+              <div style={{ fontSize: 13, color: C.muted }}>No transactions in this month yet.</div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ ...card, padding: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Desktop has full transaction tools</div>
+          <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.5 }}>
+            CSV import, transaction editing, filters, and deeper review are available on desktop.
+          </div>
+        </div>
+      </div>
+
+      <div className="kova-desktop-only">
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>Transactions</div>
@@ -300,11 +413,7 @@ export default function TransactionsPage() {
           }}>
             Add Transactions
           </div>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "150px 190px auto 130px 1fr auto",
-            gap: 10, marginBottom: batch.length ? 14 : 0,
-          }}>
+          <div className="kova-txn-form-grid" style={{ gap: 10, marginBottom: batch.length ? 14 : 0 }}>
             <input
               style={inp}
               type="date"
@@ -354,29 +463,31 @@ export default function TransactionsPage() {
               <div style={{ fontSize: 12.5, color: C.muted, fontWeight: 500, marginBottom: 8 }}>
                 {batch.length} pending — review before saving
               </div>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, marginBottom: 14 }}>
-                <tbody>
-                  {batch.map((b, i) => (
-                    <tr key={b.id} style={{ background: "#f8fafc" }}>
-                      <td style={td}>{b.date}</td>
-                      <td style={{ ...td, fontWeight: 600 }}>{b.name}</td>
-                      <td style={td}>
-                        <span style={badge(b.type)}>{TYPE_META[b.type]?.label || b.type}</span>
-                      </td>
-                      <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{fmt(b.amount)}</td>
-                      <td style={{ ...td, color: C.muted, fontSize: 12.5 }}>{b.notes}</td>
-                      <td style={td}>
-                        <button
-                          style={{ ...btn("ghost"), padding: "4px 10px", fontSize: 12 }}
-                          onClick={() => setBatch(p => p.filter((_, j) => j !== i))}
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="kova-table-scroll">
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, marginBottom: 14 }}>
+                  <tbody>
+                    {batch.map((b, i) => (
+                      <tr key={b.id} style={{ background: "#f8fafc" }}>
+                        <td style={td}>{b.date}</td>
+                        <td style={{ ...td, fontWeight: 600 }}>{b.name}</td>
+                        <td style={td}>
+                          <span style={badge(b.type)}>{TYPE_META[b.type]?.label || b.type}</span>
+                        </td>
+                        <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{fmt(b.amount)}</td>
+                        <td style={{ ...td, color: C.muted, fontSize: 12.5 }}>{b.notes}</td>
+                        <td style={td}>
+                          <button
+                            style={{ ...btn("ghost"), padding: "4px 10px", fontSize: 12 }}
+                            onClick={() => setBatch(p => p.filter((_, j) => j !== i))}
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <button style={btn()} onClick={commitBatch}>
                 Save {batch.length} Transaction{batch.length > 1 ? "s" : ""}
               </button>
@@ -448,94 +559,96 @@ export default function TransactionsPage() {
                 </div>
               </div>
 
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                <thead>
-                  <tr>
-                    <th style={{ ...th, width: 32 }}>
-                      <input
-                        type="checkbox"
-                        checked={csvRows.every(r => r.selected)}
-                        onChange={e => setCsvRows(rows => rows.map(r => ({ ...r, selected: e.target.checked })))}
-                      />
-                    </th>
-                    <th style={th}>Date</th>
-                    <th style={th}>Description</th>
-                    <th style={{ ...th, textAlign: "right" }}>Amount</th>
-                    <th style={th}>Category</th>
-                    <th style={th}>Type</th>
-                    <th style={th}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {csvRows.map(row => (
-                    <tr
-                      key={row.id}
-                      style={{
-                        background: row.isDuplicate ? "#fffbeb" : row.selected ? "#fff" : "#f8fafc",
-                        opacity: row.selected ? 1 : 0.5,
-                      }}
-                    >
-                      <td style={td}>
+              <div className="kova-table-scroll">
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, width: 32 }}>
                         <input
                           type="checkbox"
-                          checked={row.selected}
-                          onChange={e => updateCsvRow(row.id, "selected", e.target.checked)}
+                          checked={csvRows.every(r => r.selected)}
+                          onChange={e => setCsvRows(rows => rows.map(r => ({ ...r, selected: e.target.checked })))}
                         />
-                      </td>
-                      <td style={{ ...td, color: C.muted, fontSize: 12.5 }}>{row.date}</td>
-                      <td style={{
-                        ...td, fontSize: 12.5,
-                        maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      }}>
-                        {row.description}
-                        {row.isDuplicate && (
-                          <span style={{
-                            marginLeft: 6, padding: "1px 7px", borderRadius: 20,
-                            fontSize: 10, fontWeight: 700,
-                            background: "#fef3c7", color: C.amber,
-                          }}>
-                            Duplicate
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmt(row.amount)}</td>
-                      <td style={td}>
-                        <select
-                          style={{ ...sel, width: 150, padding: "5px 8px", fontSize: 12.5 }}
-                          value={row.category}
-                          onChange={e => updateCsvRow(row.id, "category", e.target.value)}
-                        >
-                          <option value="">— Assign —</option>
-                          {TYPES.map(type => (
-                            <optgroup key={type} label={type}>
-                              {budgets.filter(b => b.type === type).map(b => (
-                                <option key={b.name} value={b.name}>{b.name}</option>
-                              ))}
-                            </optgroup>
-                          ))}
-                        </select>
-                      </td>
-                      <td style={td}>
-                        {row.type && (
-                          <span style={badge(row.type)}>
-                            {TYPE_META[row.type]?.label || row.type}
-                          </span>
-                        )}
-                      </td>
-                      <td style={td}>
-                        {row.category && (
-                          <button
-                            style={{ ...btn("ghost"), padding: "3px 8px", fontSize: 11, color: C.accent, whiteSpace: "nowrap" }}
-                            onClick={() => applyToAllMatching(row.description, row.category)}
-                          >
-                            Apply to all
-                          </button>
-                        )}
-                      </td>
+                      </th>
+                      <th style={th}>Date</th>
+                      <th style={th}>Description</th>
+                      <th style={{ ...th, textAlign: "right" }}>Amount</th>
+                      <th style={th}>Category</th>
+                      <th style={th}>Type</th>
+                      <th style={th}></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {csvRows.map(row => (
+                      <tr
+                        key={row.id}
+                        style={{
+                          background: row.isDuplicate ? "#fffbeb" : row.selected ? "#fff" : "#f8fafc",
+                          opacity: row.selected ? 1 : 0.5,
+                        }}
+                      >
+                        <td style={td}>
+                          <input
+                            type="checkbox"
+                            checked={row.selected}
+                            onChange={e => updateCsvRow(row.id, "selected", e.target.checked)}
+                          />
+                        </td>
+                        <td style={{ ...td, color: C.muted, fontSize: 12.5 }}>{row.date}</td>
+                        <td style={{
+                          ...td, fontSize: 12.5,
+                          maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {row.description}
+                          {row.isDuplicate && (
+                            <span style={{
+                              marginLeft: 6, padding: "1px 7px", borderRadius: 20,
+                              fontSize: 10, fontWeight: 700,
+                              background: "#fef3c7", color: C.amber,
+                            }}>
+                              Duplicate
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmt(row.amount)}</td>
+                        <td style={td}>
+                          <select
+                            style={{ ...sel, width: 150, padding: "5px 8px", fontSize: 12.5 }}
+                            value={row.category}
+                            onChange={e => updateCsvRow(row.id, "category", e.target.value)}
+                          >
+                            <option value="">— Assign —</option>
+                            {TYPES.map(type => (
+                              <optgroup key={type} label={type}>
+                                {budgets.filter(b => b.type === type).map(b => (
+                                  <option key={b.name} value={b.name}>{b.name}</option>
+                                ))}
+                              </optgroup>
+                            ))}
+                          </select>
+                        </td>
+                        <td style={td}>
+                          {row.type && (
+                            <span style={badge(row.type)}>
+                              {TYPE_META[row.type]?.label || row.type}
+                            </span>
+                          )}
+                        </td>
+                        <td style={td}>
+                          {row.category && (
+                            <button
+                              style={{ ...btn("ghost"), padding: "3px 8px", fontSize: 11, color: C.accent, whiteSpace: "nowrap" }}
+                              onClick={() => applyToAllMatching(row.description, row.category)}
+                            >
+                              Apply to all
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </>
@@ -561,7 +674,8 @@ export default function TransactionsPage() {
         </div>
 
         <div style={card}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
+          <div className="kova-table-scroll">
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
             <thead>
               <tr>
                 <th style={th}>Date</th>
@@ -726,8 +840,10 @@ export default function TransactionsPage() {
                 );
               })}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
+      </div>
       </div>
     </div>
   );

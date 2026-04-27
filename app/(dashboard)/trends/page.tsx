@@ -176,6 +176,14 @@ export default function TrendsPage() {
 
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "28px 24px" }}>
+      <div className="kova-mobile-only" style={{ ...card }}>
+        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Trends</div>
+        <div style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.5 }}>
+          Trends is desktop-only. Open Kova on desktop for month-over-month charts and full breakdowns.
+        </div>
+      </div>
+
+      <div className="kova-desktop-only">
       {/* Page title */}
       <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, marginBottom: 24 }}>
         Trends
@@ -427,6 +435,7 @@ export default function TrendsPage() {
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }

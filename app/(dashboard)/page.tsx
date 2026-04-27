@@ -259,6 +259,129 @@ export default function OverviewPage() {
 
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "28px 24px" }}>
+      <div className="kova-mobile-only">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>Overview</div>
+          <select
+            style={{
+              background: C.surf, border: `1px solid ${C.border}`, color: C.text,
+              padding: "7px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+            }}
+            value={filterMonth}
+            onChange={e => setFilterMonth(e.target.value)}
+          >
+            {months.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+
+        <div className="kova-overview-kpi-grid" style={{ gap: 12, marginBottom: 14 }}>
+          {[
+            { label: "Money In",      val: stats.inc,  pos: null },
+            { label: "Money Out",     val: stats.out,  pos: null },
+            { label: "Total Budget",  val: stats.bud,  pos: null },
+            { label: "Left to Spend", val: stats.left, pos: stats.left >= 0 },
+            { label: "Net Savings",   val: stats.net,  pos: stats.net >= 0 },
+          ].map(k => (
+            <div key={k.label} style={card}>
+              <div style={{
+                fontSize: 11, fontWeight: 700, color: C.muted,
+                textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6,
+              }}>
+                {k.label}
+              </div>
+              <div style={{
+                fontSize: 18, fontWeight: 800, letterSpacing: -0.5,
+                color: k.pos === null ? C.text : k.pos ? C.green : C.red,
+              }}>
+                {fmt(k.val)}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {dueSoon.length > 0 && (
+          <div style={{ ...card, marginBottom: 14, padding: "14px 16px" }}>
+            <div style={{
+              fontSize: 11, fontWeight: 700, color: C.muted,
+              textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10,
+            }}>
+              Bills Due Soon
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {dueSoon.map(b => {
+                const color = b.isPaid
+                  ? C.green
+                  : b.diffDays < 0
+                    ? C.red
+                    : b.diffDays <= 3
+                      ? C.amber
+                      : C.accent;
+                const bg = b.isPaid
+                  ? "#dcfce7"
+                  : b.diffDays < 0
+                    ? "#fee2e2"
+                    : b.diffDays <= 3
+                      ? "#fef3c7"
+                      : "#eff6ff";
+                const label = b.isPaid
+                  ? "Paid"
+                  : b.diffDays < 0
+                    ? `${Math.abs(b.diffDays)}d overdue`
+                    : b.diffDays === 0
+                      ? "Due today"
+                      : `Due in ${b.diffDays}d`;
+
+                return (
+                  <div
+                    key={b.name}
+                    style={{
+                      background: bg,
+                      border: `1px solid ${color}30`,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      minWidth: 120,
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{b.name}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color }}>{label}</div>
+                    <div style={{ fontSize: 12, color: C.muted }}>{fmt(b.amount)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div style={{ ...card, marginBottom: 14 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: C.muted,
+            textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 12,
+          }}>
+            Money Out by Category
+          </div>
+          <div style={{ height: 230 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={donutData} cx="50%" cy="50%" innerRadius={42} outerRadius={76} dataKey="value" paddingAngle={2}>
+                  {donutData.map((_, i) => (
+                    <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CT />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div style={{ ...card, padding: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Desktop has the full budget workflow</div>
+          <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.5 }}>
+            Open Kova on desktop to review category tables, debt payoff details, trends, calendar, and check-ins.
+          </div>
+        </div>
+      </div>
+
+      <div className="kova-desktop-only">
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>Overview</div>
@@ -275,7 +398,7 @@ export default function OverviewPage() {
       </div>
 
       {/* ── KPI cards ───────────────────────────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="kova-overview-kpi-grid" style={{ gap: 14, marginBottom: 20 }}>
         {[
           { label: "Money In",      val: stats.inc,  pos: null },
           { label: "Money Out",     val: stats.out,  pos: null },
@@ -351,7 +474,7 @@ export default function OverviewPage() {
       )}
 
       {/* ── Charts row ──────────────────────────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div className="kova-two-col-mobile" style={{ gap: 16, marginBottom: 16 }}>
         {/* Donut — Money Out by Category */}
         <div style={card}>
           <div style={{
@@ -448,39 +571,41 @@ export default function OverviewPage() {
       </div>
 
       {/* ── Category tables ──────────────────────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
+      <div className="kova-two-col-mobile" style={{ gap: 14, marginBottom: 16 }}>
         {TYPES.map(type => (
           <div key={type} style={card}>
             {sectionHead(type)}
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr>
-                  <th style={th}>Category</th>
-                  <th style={{ ...th, textAlign: "right" }}>Budget</th>
-                  <th style={{ ...th, textAlign: "right" }}>Actual</th>
-                  <th style={{ ...th, textAlign: "right" }}>Diff</th>
-                </tr>
-              </thead>
-              <tbody>
-                {typeGroups[type].map(row => {
-                  const d = type === "INCOME"
-                    ? row.actual - row.budget
-                    : row.budget - row.actual;
-                  return (
-                    <tr key={row.name}>
-                      <td style={td}>{row.name}</td>
-                      <td style={{ ...td, textAlign: "right", color: C.muted }}>{fmt(row.budget)}</td>
-                      <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmt(row.actual)}</td>
-                      <td style={{ ...td, textAlign: "right" }}>
-                        <span style={{ color: d >= 0 ? C.green : C.red, fontWeight: 700 }}>
-                          {d >= 0 ? "+" : ""}{fmt(d)}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="kova-table-scroll">
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr>
+                    <th style={th}>Category</th>
+                    <th style={{ ...th, textAlign: "right" }}>Budget</th>
+                    <th style={{ ...th, textAlign: "right" }}>Actual</th>
+                    <th style={{ ...th, textAlign: "right" }}>Diff</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {typeGroups[type].map(row => {
+                    const d = type === "INCOME"
+                      ? row.actual - row.budget
+                      : row.budget - row.actual;
+                    return (
+                      <tr key={row.name}>
+                        <td style={td}>{row.name}</td>
+                        <td style={{ ...td, textAlign: "right", color: C.muted }}>{fmt(row.budget)}</td>
+                        <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmt(row.actual)}</td>
+                        <td style={{ ...td, textAlign: "right" }}>
+                          <span style={{ color: d >= 0 ? C.green : C.red, fontWeight: 700 }}>
+                            {d >= 0 ? "+" : ""}{fmt(d)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         ))}
       </div>
@@ -494,7 +619,7 @@ export default function OverviewPage() {
           }}>
             Debt Payoff Progress
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="kova-two-col-mobile" style={{ gap: 16 }}>
             {debtStats.map(d => (
               <div key={d.name} style={{
                 background: C.bg, borderRadius: 10, padding: 16, border: `1px solid ${C.border}`,
@@ -552,6 +677,7 @@ export default function OverviewPage() {
           onChange={e => setNotesDraft(e.target.value)}
           onBlur={handleNotesSave}
         />
+      </div>
       </div>
     </div>
   );
