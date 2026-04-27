@@ -40,7 +40,7 @@ export function MobileOverview() {
         </select>
       </div>
 
-      <div className="kova-overview-kpi-grid" style={{ gap: 12, marginBottom: 14 }}>
+      <div className="grid grid-cols-2 min-[768px]:grid-cols-3 min-[1280px]:grid-cols-5 gap-3 mb-3.5">
         {[
           { label: "Money In",      val: stats.inc,  pos: null },
           { label: "Money Out",     val: stats.out,  pos: null },

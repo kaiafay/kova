@@ -24,6 +24,7 @@ const DEFAULT_BUDGETS = [
   { name: "Gym",                type: "SUBSCRIPTIONS", budgetAmount: 0, dueDay: null, startingBalance: null },
   { name: "Credit Card",        type: "DEBT PAYMENT",  budgetAmount: 0, dueDay: null, startingBalance: null },
   { name: "Student Loans",      type: "DEBT PAYMENT",  budgetAmount: 0, dueDay: null, startingBalance: null },
+  { name: "Uncategorized",      type: "EXPENSES",      budgetAmount: 0, dueDay: null, startingBalance: null },
 ];
 
 export async function POST() {

@@ -11,34 +11,6 @@ body {
   color: #0f172a;
 }
 
-.kova-overview-kpi-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-@media (min-width: 768px) {
-  .kova-overview-kpi-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (min-width: 1280px) {
-  .kova-overview-kpi-grid {
-    grid-template-columns: repeat(5, 1fr);
-  }
-}
-
-.kova-two-col-mobile {
-  display: grid;
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 1024px) {
-  .kova-two-col-mobile {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
 .kova-table-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;

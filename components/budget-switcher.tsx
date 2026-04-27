@@ -34,6 +34,10 @@ export function BudgetSwitcher({ compact = false }: { compact?: boolean }) {
   const [members, setMembers] = useState<{ userId: string; firstName: string | null; lastName: string | null; identifier: string; isCreator: boolean; isCurrentUser: boolean }[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const orgs = userMemberships?.data ?? [];
 
@@ -96,6 +100,30 @@ export function BudgetSwitcher({ compact = false }: { compact?: boolean }) {
       setInviteError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setInviteLoading(false);
+    }
+  };
+
+  const openDelete = () => {
+    setOpen(false);
+    setDeleteConfirm("");
+    setDeleteError("");
+    setDeleteOpen(true);
+  };
+
+  const deleteBudget = async () => {
+    if (!organization) return;
+    setDeleteLoading(true);
+    setDeleteError("");
+    try {
+      await organization.destroy();
+      const remaining = orgs.filter(m => m.organization.id !== organization.id);
+      if (remaining.length > 0 && setActive) {
+        await setActive({ organization: remaining[0].organization.id });
+      }
+      window.location.href = remaining.length > 0 ? "/" : "/onboarding";
+    } catch (err: unknown) {
+      setDeleteError(err instanceof Error ? err.message : "Something went wrong");
+      setDeleteLoading(false);
     }
   };
 
@@ -328,6 +356,28 @@ export function BudgetSwitcher({ compact = false }: { compact?: boolean }) {
                 >
                   Manage collaborators
                 </button>
+              )}
+              {isOwner && (
+                <>
+                  <div style={{ borderTop: `1px solid ${C.border}`, margin: "6px 0" }} />
+                  <button
+                    onClick={openDelete}
+                    style={{
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "8px 10px",
+                      borderRadius: 7,
+                      border: "none",
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      fontSize: 13.5,
+                      color: "#dc2626",
+                      background: "transparent",
+                    }}
+                  >
+                    Delete budget
+                  </button>
+                </>
               )}
             </div>
           </>
@@ -589,6 +639,55 @@ export function BudgetSwitcher({ compact = false }: { compact?: boolean }) {
                 )}
               </form>
             )}
+          </div>
+        </>
+      )}
+      {deleteOpen && (
+        <>
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(15,23,42,0.4)", backdropFilter: "blur(2px)" }}
+            onClick={() => !deleteLoading && setDeleteOpen(false)}
+          />
+          <div
+            style={{
+              position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+              zIndex: 101, background: C.surf, border: `1px solid ${C.border}`,
+              borderRadius: 16, padding: 36, width: "100%", maxWidth: 440,
+              boxShadow: "0 16px 48px rgba(0,0,0,0.15)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={{ fontSize: 17, fontWeight: 800, color: "#dc2626", letterSpacing: -0.4 }}>Delete budget</div>
+              <button onClick={() => setDeleteOpen(false)} disabled={deleteLoading} style={{ background: "transparent", border: "none", cursor: "pointer", color: C.muted, fontSize: 20, lineHeight: 1, padding: 2 }}>×</button>
+            </div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>
+              This will permanently delete <strong style={{ color: C.text }}>{organization?.name}</strong> and all its transactions, budgets, and settings. This cannot be undone.
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.muted, marginBottom: 6 }}>
+              Type <strong style={{ color: C.text }}>{organization?.name}</strong> to confirm
+            </div>
+            <input
+              autoFocus
+              style={{ width: "100%", padding: "10px 14px", border: `1px solid ${deleteConfirm === organization?.name ? "#fca5a5" : C.border}`, borderRadius: 8, fontSize: 14, fontFamily: "inherit", outline: "none", color: C.text, background: C.surf, boxSizing: "border-box", marginBottom: 12 }}
+              placeholder={organization?.name}
+              value={deleteConfirm}
+              onChange={e => { setDeleteConfirm(e.target.value); setDeleteError(""); }}
+              disabled={deleteLoading}
+            />
+            {deleteError && <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 10 }}>{deleteError}</div>}
+            <button
+              onClick={deleteBudget}
+              disabled={deleteConfirm !== organization?.name || deleteLoading}
+              style={{
+                width: "100%", padding: "11px 0", background: deleteConfirm === organization?.name ? "#dc2626" : "#fef2f2",
+                color: deleteConfirm === organization?.name ? "#fff" : "#fca5a5",
+                border: "none", borderRadius: 8, fontWeight: 700, fontSize: 14,
+                cursor: deleteConfirm === organization?.name && !deleteLoading ? "pointer" : "not-allowed",
+                fontFamily: "inherit", transition: "all 0.15s",
+              }}
+            >
+              {deleteLoading ? "Deleting…" : "Delete permanently"}
+            </button>
           </div>
         </>
       )}

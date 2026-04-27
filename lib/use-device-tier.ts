@@ -20,9 +20,17 @@ export function useDeviceTier(): DeviceTier | null {
     update();
     mqMobile.addEventListener("change", update);
     mqTablet.addEventListener("change", update);
+    // `matchMedia('change')` only runs when a query’s truth value flips. Moving a
+    // window between monitors without resizing keeps the same innerWidth, so
+    // nothing fires — that’s expected. Resize/visualViewport still matter when
+    // the user drags window edges, zooms, or undocks DevTools.
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
     return () => {
       mqMobile.removeEventListener("change", update);
       mqTablet.removeEventListener("change", update);
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
     };
   }, []);
 

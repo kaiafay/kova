@@ -29,28 +29,93 @@ const badge = (type: string) => ({ display: "inline-block", padding: "2px 9px", 
 const todayStr = new Date().toISOString().slice(0, 10);
 const MAX_CSV_BYTES = 5 * 1024 * 1024;
 
-const parseWFDate = (str: string): string | null => {
-  const clean = str.replace(/"/g, "").trim();
-  const parts = clean.split("/");
-  if (parts.length !== 3) return null;
-  const mo = parseInt(parts[0], 10); const dy = parseInt(parts[1], 10); const yr = parseInt(parts[2], 10);
-  if (isNaN(mo) || isNaN(dy) || isNaN(yr)) return null;
-  if (mo < 1 || mo > 12 || dy < 1 || dy > 31 || yr < 2000 || yr > 2100) return null;
-  return `${yr}-${String(mo).padStart(2, "0")}-${String(dy).padStart(2, "0")}`;
+const parseCSVLine = (line: string): string[] => {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
 };
-const parseWFCSV = (text: string) => {
+
+const parseFlexDate = (str: string): string | null => {
+  const clean = str.replace(/"/g, "").trim();
+  const mdy = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (mdy) {
+    const mo = parseInt(mdy[1], 10), dy = parseInt(mdy[2], 10), yr = parseInt(mdy[3], 10);
+    if (mo >= 1 && mo <= 12 && dy >= 1 && dy <= 31 && yr >= 2000 && yr <= 2100)
+      return `${yr}-${String(mo).padStart(2, "0")}-${String(dy).padStart(2, "0")}`;
+  }
+  const ymd = clean.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (ymd) {
+    const yr = parseInt(ymd[1], 10), mo = parseInt(ymd[2], 10), dy = parseInt(ymd[3], 10);
+    if (mo >= 1 && mo <= 12 && dy >= 1 && dy <= 31 && yr >= 2000 && yr <= 2100)
+      return `${yr}-${String(mo).padStart(2, "0")}-${String(dy).padStart(2, "0")}`;
+  }
+  return null;
+};
+
+const DATE_HEADERS = ["date", "transaction date", "posted date", "post date"];
+const AMOUNT_HEADERS = ["amount"];
+const DEBIT_HEADERS = ["debit"];
+const CREDIT_HEADERS = ["credit"];
+const DESC_HEADERS = ["description", "merchant", "payee", "memo", "name"];
+
+interface ColMap { dateIdx: number; descIdx: number; amountIdx: number; debitIdx: number; creditIdx: number }
+
+const detectColumns = (headers: string[]): ColMap | null => {
+  const norm = headers.map(h => h.toLowerCase().trim());
+  const find = (names: string[]) => { for (const n of names) { const i = norm.indexOf(n); if (i !== -1) return i; } return -1; };
+  const dateIdx = find(DATE_HEADERS);
+  const descIdx = find(DESC_HEADERS);
+  if (dateIdx === -1 || descIdx === -1) return null;
+  const amountIdx = find(AMOUNT_HEADERS);
+  const debitIdx = find(DEBIT_HEADERS);
+  const creditIdx = find(CREDIT_HEADERS);
+  if (amountIdx === -1 && (debitIdx === -1 || creditIdx === -1)) return null;
+  return { dateIdx, descIdx, amountIdx, debitIdx, creditIdx };
+};
+
+type ParsedRow = { date: string; amount: number; description: string; suggestedType: string; rawAmount: number };
+type ParseResult = ParsedRow[] | { error: string };
+
+const parseBankCSV = (text: string): ParseResult => {
   const lines = text.trim().split("\n").filter(l => l.trim());
-  return lines.flatMap(line => {
-    const cols = line.split(",").map(c => c.replace(/"/g, "").trim());
-    const date = parseWFDate(cols[0]);
-    if (!date) return [];
-    const rawAmount = parseFloat(cols[1]);
-    const desc = cols[4] || cols[3] || "Unknown";
+  if (lines.length < 2) return { error: "CSV file appears empty or has only one row." };
+  const headers = parseCSVLine(lines[0]);
+  const colMap = detectColumns(headers);
+  if (!colMap) return { error: "Could not detect required columns. Supported formats: Wells Fargo, Chase, Bank of America, Capital One. Ensure your CSV has a header row with recognizable column names (Date, Amount/Debit/Credit, Description)." };
+  const results: ParsedRow[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    const date = parseFlexDate(cols[colMap.dateIdx] || "");
+    if (!date) continue;
+    let rawAmount: number;
+    if (colMap.amountIdx !== -1) {
+      rawAmount = parseFloat((cols[colMap.amountIdx] || "0").replace(/[$,]/g, ""));
+    } else {
+      const debit = parseFloat((cols[colMap.debitIdx] || "0").replace(/[$,]/g, "")) || 0;
+      const credit = parseFloat((cols[colMap.creditIdx] || "0").replace(/[$,]/g, "")) || 0;
+      rawAmount = credit - debit;
+    }
+    if (isNaN(rawAmount)) continue;
     const amount = Math.abs(rawAmount);
-    const suggestedType = rawAmount >= 0 ? "INCOME" : "EXPENSES";
-    if (isNaN(amount) || amount <= 0) return [];
-    return [{ date, amount, description: desc, suggestedType, rawAmount }];
-  });
+    if (amount <= 0) continue;
+    const description = cols[colMap.descIdx] || "Unknown";
+    results.push({ date, amount, description, suggestedType: rawAmount >= 0 ? "INCOME" : "EXPENSES", rawAmount });
+  }
+  return results;
 };
 
 interface CsvRow { id: string; date: string; amount: number; description: string; suggestedType: string; rawAmount: number; category: string; type: string; notes: string; isDuplicate: boolean; selected: boolean }
@@ -104,12 +169,14 @@ export function DesktopTransactions() {
     const reader = new FileReader();
     reader.onload = ev => {
       const text = ev.target?.result as string;
-      const rows = parseWFCSV(text);
+      const parsed = parseBankCSV(text);
+      if ("error" in parsed) { setCsvError(parsed.error); return; }
+      const rows = parsed;
       const existingKeys = new Set(transactions.map(t => `${t.date}|${t.notes}|${t.amount}`));
       setCsvRows(rows.map((r, i) => {
         const isDuplicate = existingKeys.has(`${r.date}|${r.description}|${r.amount}`);
-        const category = settings.merchantMap[r.description] || "";
-        const type = category ? (budgetMap[category]?.type || r.suggestedType) : r.suggestedType;
+        const category = settings.merchantMap[r.description] || "Uncategorized";
+        const type = budgetMap[category]?.type || r.suggestedType;
         return { ...r, id: `csv_${Date.now()}_${i}`, category, type, notes: r.description, isDuplicate, selected: !isDuplicate };
       }));
     };
@@ -130,7 +197,7 @@ export function DesktopTransactions() {
     setCsvRows(rows => rows.map(r => r.description !== desc ? r : { ...r, category: cat, type: budgetMap[cat]?.type || r.suggestedType }));
   };
   const commitCSV = async () => {
-    const toImport = csvRows.filter(r => r.selected && r.category);
+    const toImport = csvRows.filter(r => r.selected);
     if (!toImport.length) return;
     const newMap = { ...settings.merchantMap };
     toImport.forEach(r => { newMap[r.description] = r.category; });
@@ -214,11 +281,8 @@ export function DesktopTransactions() {
           {csvRows.length === 0 && (
             <div style={{ ...card, textAlign: "center", padding: 48 }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>📄</div>
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: C.text }}>Import from Wells Fargo</div>
-              <div style={{ fontSize: 13.5, color: C.muted, marginBottom: 20 }}>Download your transaction history as a CSV then upload it here.</div>
-              <div style={{ fontSize: 12, color: C.subtle, marginBottom: 20, background: "#f8fafc", border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 16px", display: "inline-block", textAlign: "left" }}>
-                <strong>How to export:</strong> Sign in → Account Activity → Download Account Activity → CSV
-              </div>
+              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: C.text }}>Import Bank Transactions</div>
+              <div style={{ fontSize: 13.5, color: C.muted, marginBottom: 20 }}>Upload a CSV export from your bank. Supported: Wells Fargo, Chase, Bank of America, Capital One, and others with standard headers.</div>
               <br />
               <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }} onChange={handleCSVFile} />
               <button style={btn()} onClick={() => fileRef.current?.click()}>Upload CSV File</button>
@@ -236,7 +300,7 @@ export function DesktopTransactions() {
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button style={btn("secondary")} onClick={() => setCsvRows([])}>Cancel</button>
-                  <button style={btn()} onClick={commitCSV}>Import {csvRows.filter(r => r.selected && r.category).length} Transactions</button>
+                  <button style={btn()} onClick={commitCSV}>Import {csvRows.filter(r => r.selected).length} Transactions</button>
                 </div>
               </div>
               <div className="kova-table-scroll">
@@ -264,7 +328,9 @@ export function DesktopTransactions() {
                           </select>
                         </td>
                         <td style={td}>{row.type && <span style={badge(row.type)}>{TYPE_META[row.type]?.label || row.type}</span>}</td>
-                        <td style={td}>{row.category && <button style={{ ...btn("ghost"), padding: "3px 8px", fontSize: 11, color: C.accent, whiteSpace: "nowrap" }} onClick={() => applyToAllMatching(row.description, row.category)}>Apply to all</button>}</td>
+                        <td style={td}>{row.category && csvRows.some(r => r.description === row.description && r.id !== row.id && r.category !== row.category) && (
+                          <button style={{ ...btn("ghost"), padding: "3px 8px", fontSize: 11, color: C.accent, whiteSpace: "nowrap" }} onClick={() => applyToAllMatching(row.description, row.category)}>Apply to all</button>
+                        )}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -1,4 +1,4 @@
-/** Canonical min-width breakpoints (px). Keep numeric parity with the breakpoint comment block in app/globals.css. */
+/** Canonical min-width breakpoints (px). Overview KPI/two-col grids use these values in Tailwind `min-[…px]` classes; see `*_Overview.tsx`. */
 export const BP_TABLET_MIN = 768;
 export const BP_DESKTOP_MIN = 1280;
 /** Layout-only breakpoint (two-column grids); not part of device tier. */

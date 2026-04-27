@@ -58,7 +58,7 @@ export function DesktopOverview() {
       g[v.type].budget += v.budget;
       g[v.type].actual += catTotals[n] || 0;
     });
-    return Object.entries(g).map(([k, v]) => ({ name: k === "DEBT PAYMENT" ? "Debt" : k, budget: Math.round(v.budget), actual: Math.round(v.actual) }));
+    return Object.entries(g).map(([k, v]) => ({ name: TYPE_META[k]?.label || k, budget: Math.round(v.budget), actual: Math.round(v.actual) }));
   }, [budgetMap, catTotals]);
 
   interface TrendLinePoint { day: number; balance: number }
@@ -120,7 +120,7 @@ export function DesktopOverview() {
         </select>
       </div>
 
-      <div className="kova-overview-kpi-grid" style={{ gap: 14, marginBottom: 20 }}>
+      <div className="grid grid-cols-2 min-[768px]:grid-cols-3 min-[1280px]:grid-cols-5 gap-3.5 mb-5">
         {[
           { label: "Money In",      val: stats.inc,  pos: null },
           { label: "Money Out",     val: stats.out,  pos: null },
@@ -155,7 +155,7 @@ export function DesktopOverview() {
         </div>
       )}
 
-      <div className="kova-two-col-mobile" style={{ gap: 16, marginBottom: 16 }}>
+      <div className="grid grid-cols-1 min-[1024px]:grid-cols-2 gap-4 mb-4">
         <div style={card}>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 16 }}>Money Out by Category</div>
           <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -207,7 +207,7 @@ export function DesktopOverview() {
         </ResponsiveContainer>
       </div>
 
-      <div className="kova-two-col-mobile" style={{ gap: 14, marginBottom: 16 }}>
+      <div className="grid grid-cols-1 min-[1024px]:grid-cols-2 gap-3.5 mb-4">
         {TRANSACTION_TYPES.map(type => (
           <div key={type} style={card}>
             {sectionHead(type)}
@@ -236,7 +236,7 @@ export function DesktopOverview() {
       {debtStats.length > 0 && (
         <div style={{ ...card, marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 16 }}>Debt Payoff Progress</div>
-          <div className="kova-two-col-mobile" style={{ gap: 16 }}>
+          <div className="grid grid-cols-1 min-[1024px]:grid-cols-2 gap-4">
             {debtStats.map(d => (
               <div key={d.name} style={{ background: C.bg, borderRadius: 10, padding: 16, border: `1px solid ${C.border}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
