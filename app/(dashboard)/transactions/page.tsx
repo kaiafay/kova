@@ -10,6 +10,7 @@ const DesktopTransactions = dynamic(
 
 export default function TransactionsPage() {
   const tier = useDeviceTier();
+  if (!tier) return null;
   if (tier === "mobile") return <MobileTransactions />;
   return <DesktopTransactions />;
 }

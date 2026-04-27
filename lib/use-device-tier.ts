@@ -4,8 +4,8 @@ import { MOBILE_MAX, TABLET_MAX } from "./breakpoints";
 
 export type DeviceTier = "mobile" | "tablet" | "desktop";
 
-export function useDeviceTier(): DeviceTier {
-  const [tier, setTier] = useState<DeviceTier>("desktop");
+export function useDeviceTier(): DeviceTier | null {
+  const [tier, setTier] = useState<DeviceTier | null>(null);
 
   useEffect(() => {
     const mqMobile = window.matchMedia(`(max-width: ${MOBILE_MAX}px)`);

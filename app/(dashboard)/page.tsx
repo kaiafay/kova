@@ -10,6 +10,7 @@ const DesktopOverview = dynamic(
 
 export default function OverviewPage() {
   const tier = useDeviceTier();
+  if (!tier) return null;
   if (tier === "mobile") return <MobileOverview />;
   return <DesktopOverview />;
 }
