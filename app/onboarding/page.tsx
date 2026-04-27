@@ -41,6 +41,8 @@ function OnboardingContent() {
       await setActive({ organization: org.id });
       const res = await fetch("/api/seed", { method: "POST" });
       if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      if (!data.ok) throw new Error("Seed did not complete successfully");
       router.replace("/");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");

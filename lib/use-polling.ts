@@ -10,9 +10,13 @@ export function usePolling(callback: () => void | Promise<void>, intervalMs: num
   });
 
   useEffect(() => {
-    const tick = () => {
+    const tick = async () => {
       if (document.visibilityState === "visible") {
-        savedCallback.current();
+        try {
+          await savedCallback.current();
+        } catch (err) {
+          console.error("[usePolling] callback error:", err);
+        }
       }
     };
 

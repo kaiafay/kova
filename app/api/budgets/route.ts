@@ -1,8 +1,17 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { budgets } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+
+const BudgetSchema = z.object({
+  name: z.string().min(1).max(200),
+  type: z.enum(["INCOME", "BILLS", "EXPENSES", "DEBT PAYMENT", "SUBSCRIPTIONS"]),
+  budgetAmount: z.coerce.number().min(0).finite(),
+  dueDay: z.coerce.number().int().min(1).max(31).nullable().optional(),
+  startingBalance: z.coerce.number().min(0).finite().nullable().optional(),
+});
 
 export async function GET() {
   const { userId, orgId } = await auth();
@@ -14,8 +23,10 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const { userId, orgId } = await auth();
   if (!userId || !orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = await req.json();
-  // Upsert by orgId + name
+  const raw = await req.json();
+  const parsed = BudgetSchema.safeParse(raw);
+  if (!parsed.success) return NextResponse.json({ error: "Invalid input", issues: parsed.error.issues }, { status: 400 });
+  const body = parsed.data;
   const existing = await db.select().from(budgets).where(and(eq(budgets.orgId, orgId), eq(budgets.name, body.name)));
   if (existing.length > 0) {
     const updated = await db.update(budgets)

@@ -179,21 +179,22 @@ export default function OverviewPage() {
     }));
   }, [budgetMap, catTotals]);
 
-  // Balance trend line — starts at 4104.75
-  const trendLine = useMemo(() => {
+  // Balance trend line — starts at settings.startingBalance
+  interface TrendLinePoint { day: number; balance: number }
+  const trendLine = useMemo((): TrendLinePoint[] => {
     const sorted = [...monthTxns].sort((a, b) => a.date.localeCompare(b.date));
-    let bal = 4104.75;
-    const pts: { day: number; balance: number }[] = [];
+    let bal = settings.startingBalance ?? 0;
+    const pts: TrendLinePoint[] = [];
     sorted.forEach(t => {
       if (t.type === "INCOME") bal += parseFloat(t.amount);
       else bal -= parseFloat(t.amount);
-      const day = parseInt(t.date.slice(8));
+      const day = parseInt(t.date.slice(8), 10);
       const ex = pts.find(p => p.day === day);
       if (ex) ex.balance = Math.round(bal * 100) / 100;
       else pts.push({ day, balance: Math.round(bal * 100) / 100 });
     });
     return pts;
-  }, [monthTxns]);
+  }, [monthTxns, settings.startingBalance]);
 
   // Group budgets by type for category tables
   const typeGroups = useMemo(() => {

@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { useBudget } from "@/lib/budget-context";
 
 // ── Color palette ──────────────────────────────────────────────────────────
@@ -86,6 +87,7 @@ function GemIconGray({ size = 36 }: { size?: number }) {
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function CheckinPage() {
   const { checkins, settings, deleteCheckin } = useBudget();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const todayObj = new Date();
   const todayDOW = todayObj.getDay();
@@ -218,6 +220,11 @@ export default function CheckinPage() {
       </div>
 
       {/* ── Past check-ins ─────────────────────────────────────────────── */}
+      {deleteError && (
+        <div style={{ marginBottom: 12, padding: "10px 16px", background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>
+          {deleteError}
+        </div>
+      )}
       <div style={card}>
         <div
           style={{
@@ -370,7 +377,14 @@ export default function CheckinPage() {
                       flexShrink: 0,
                       marginLeft: 8,
                     }}
-                    onClick={() => deleteCheckin(ci.id)}
+                    onClick={async () => {
+                      setDeleteError(null);
+                      try {
+                        await deleteCheckin(ci.id);
+                      } catch {
+                        setDeleteError("Failed to delete check-in. Please try again.");
+                      }
+                    }}
                     title="Delete this check-in"
                   >
                     ✕
