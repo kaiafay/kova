@@ -9,7 +9,8 @@
     "lint": "eslint",
     "deploy:prod": "vercel --prod",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "seed:demo": "node scripts/seed-demo.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.2.7",
