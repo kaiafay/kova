@@ -20,7 +20,6 @@ const fmt = (n: string | null | undefined) =>
   n ? `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "$0.00";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const DAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function GemIcon({ size = 28, accent = C.accent }: { size?: number; accent?: string }) {
   return (
@@ -98,18 +97,6 @@ export default function DesktopCheckin() {
             Start now
           </button>
         </div>
-      </div>
-
-      <div style={{ ...card, marginBottom: 16, padding: "14px 18px", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-        <div style={{ fontSize: 13, color: C.muted }}>
-          <span style={{ fontWeight: 600, color: C.text }}>Scheduled day: </span>{DAYS[checkinDay]}s
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          {DAYS_SHORT.map((d, i) => (
-            <div key={d} style={{ width: 30, height: 30, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: i === checkinDay ? 700 : 500, background: i === checkinDay ? "#eff6ff" : C.bg, color: i === checkinDay ? C.accent : C.subtle, border: `1px solid ${i === checkinDay ? C.accent + "60" : C.borderL}` }}>{d[0]}</div>
-          ))}
-        </div>
-        <div style={{ fontSize: 12, color: C.subtle }}>Change in Settings → Check-in Day</div>
       </div>
 
       {deleteError && (
