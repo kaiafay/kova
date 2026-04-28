@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useOrganization, useOrganizationList } from "@clerk/nextjs";
 import { KovaGem } from "./kova-gem";
 import { useBudget } from "@/lib/budget-context";
+import { useDeviceTier } from "@/lib/use-device-tier";
 
 const C = {
   bg: "#f8fafc",
@@ -20,6 +21,8 @@ export function BudgetSwitcher({ compact = false }: { compact?: boolean }) {
   const { userMemberships, setActive, createOrganization } =
     useOrganizationList({ userMemberships: true });
   const { isOwner } = useBudget();
+  const tier = useDeviceTier();
+  const canDeleteBudget = tier === "desktop";
   const [open, setOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [newBudgetOpen, setNewBudgetOpen] = useState(false);
@@ -104,14 +107,19 @@ export function BudgetSwitcher({ compact = false }: { compact?: boolean }) {
   };
 
   const openDelete = () => {
+    if (!canDeleteBudget) return;
     setOpen(false);
     setDeleteConfirm("");
     setDeleteError("");
     setDeleteOpen(true);
   };
 
+  useEffect(() => {
+    if (!canDeleteBudget && deleteOpen) setDeleteOpen(false);
+  }, [canDeleteBudget, deleteOpen]);
+
   const deleteBudget = async () => {
-    if (!organization) return;
+    if (!canDeleteBudget || !organization) return;
     setDeleteLoading(true);
     setDeleteError("");
     try {
@@ -357,7 +365,7 @@ export function BudgetSwitcher({ compact = false }: { compact?: boolean }) {
                   Manage collaborators
                 </button>
               )}
-              {isOwner && (
+              {isOwner && canDeleteBudget && (
                 <>
                   <div style={{ borderTop: `1px solid ${C.border}`, margin: "6px 0" }} />
                   <button
@@ -642,7 +650,7 @@ export function BudgetSwitcher({ compact = false }: { compact?: boolean }) {
           </div>
         </>
       )}
-      {deleteOpen && (
+      {deleteOpen && canDeleteBudget && (
         <>
           <div
             style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(15,23,42,0.4)", backdropFilter: "blur(2px)" }}
