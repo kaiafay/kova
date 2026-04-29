@@ -1,5 +1,8 @@
 "use client";
 import { useMemo, useState, useRef } from "react";
+import { DatePickerField } from "@/components/date-picker-field";
+import { MonthPicker } from "@/components/month-picker";
+import { SelectPicker } from "@/components/select-picker";
 import { useTransactionsData } from "./use-transactions-data";
 import { TRANSACTION_TYPES, TYPE_META as TYPE_META_STRICT } from "@/lib/transaction-types";
 const TYPE_META: Record<string, { color: string; bg: string; label: string }> = TYPE_META_STRICT;
@@ -11,7 +14,6 @@ const C = {
 };
 const card = { background: C.surf, border: `1px solid ${C.border}`, borderRadius: 12, padding: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" };
 const inp = { background: C.surf, border: `1px solid ${C.border}`, color: C.text, padding: "9px 12px", borderRadius: 8, fontSize: 13.5, width: "100%", boxSizing: "border-box" as const, outline: "none", fontFamily: "inherit" };
-const sel = { ...inp, cursor: "pointer" };
 const btn = (v = "primary") => ({
   padding: "9px 20px", borderRadius: 8, border: "none", cursor: "pointer",
   fontSize: 13.5, fontWeight: 600 as const, fontFamily: "inherit",
@@ -135,6 +137,17 @@ export function DesktopTransactions() {
     return m;
   }, [budgets]);
 
+  const categoryGroups = useMemo(
+    () =>
+      TRANSACTION_TYPES.map(type => ({
+        label: TYPE_META[type]?.label ?? type,
+        options: budgets
+          .filter(b => b.type === type)
+          .map(b => ({ value: b.name, label: b.name })),
+      })),
+    [budgets],
+  );
+
   const [txnTab, setTxnTab] = useState<"manual" | "csv">("manual");
   const [form, setForm] = useState({ date: todayStr, name: "", type: "", amount: "", notes: "" });
   const [batch, setBatch] = useState<BatchItem[]>([]);
@@ -219,9 +232,7 @@ export function DesktopTransactions() {
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "28px 24px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>Transactions</div>
-        <select style={{ background: C.surf, border: `1px solid ${C.border}`, color: C.text, padding: "7px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }} value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
-          {months.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
+        <MonthPicker months={months} value={filterMonth} onChange={setFilterMonth} menuAlign="end" />
       </div>
 
       <div style={{ display: "flex", gap: 4, marginBottom: 20, background: C.surf, border: `1px solid ${C.border}`, borderRadius: 10, padding: 4, width: "fit-content" }}>
@@ -233,15 +244,16 @@ export function DesktopTransactions() {
         <div style={card}>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 16 }}>Add Transactions</div>
           <div className="kova-txn-form-grid" style={{ gap: 10, marginBottom: batch.length ? 14 : 0 }}>
-            <input style={{ ...inp, flex: "0 0 150px", minWidth: 130 }} type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-            <select style={{ ...sel, flex: "0 0 190px", minWidth: 160 }} value={form.name} onChange={e => pickName(e.target.value)}>
-              <option value="">— Category —</option>
-              {TRANSACTION_TYPES.map(type => (
-                <optgroup key={type} label={type}>
-                  {budgets.filter(b => b.type === type).map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
-                </optgroup>
-              ))}
-            </select>
+            <DatePickerField value={form.date} onChange={d => setForm(f => ({ ...f, date: d }))} menuAlign="end" style={{ flex: "0 0 150px", minWidth: 130 }} />
+            <SelectPicker
+              value={form.name}
+              onChange={v => pickName(v)}
+              groups={categoryGroups}
+              allowEmpty
+              emptyLabel="— Category —"
+              menuAlign="start"
+              style={{ flex: "0 0 190px", minWidth: 160 }}
+            />
             <div style={{ display: "flex", alignItems: "center", padding: "9px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: form.type ? TYPE_META[form.type]?.bg : "#f8fafc", color: form.type ? TYPE_META[form.type]?.color : C.subtle, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", flex: "0 0 auto" }}>
               {form.type ? TYPE_META[form.type]?.label : "Auto-fills →"}
             </div>
@@ -322,10 +334,16 @@ export function DesktopTransactions() {
                         </td>
                         <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{fmt(row.amount)}</td>
                         <td style={td}>
-                          <select style={{ ...sel, width: 150, padding: "5px 8px", fontSize: 12.5 }} value={row.category} onChange={e => updateCsvRow(row.id, "category", e.target.value)}>
-                            <option value="">— Assign —</option>
-                            {TRANSACTION_TYPES.map(type => (<optgroup key={type} label={type}>{budgets.filter(b => b.type === type).map(b => <option key={b.name} value={b.name}>{b.name}</option>)}</optgroup>))}
-                          </select>
+                          <SelectPicker
+                            value={row.category}
+                            onChange={v => updateCsvRow(row.id, "category", v)}
+                            groups={categoryGroups}
+                            allowEmpty
+                            emptyLabel="— Assign —"
+                            size="sm"
+                            menuAlign="start"
+                            style={{ width: 150 }}
+                          />
                         </td>
                         <td style={td}>{row.type && <span style={badge(row.type)}>{TYPE_META[row.type]?.label || row.type}</span>}</td>
                         <td style={td}>{row.category && csvRows.some(r => r.description === row.description && r.id !== row.id && r.category !== row.category) && (
@@ -358,11 +376,19 @@ export function DesktopTransactions() {
                   if (editingTxn?.id === t.id) {
                     return (
                       <tr key={t.id} style={{ background: "#f8faff" }}>
-                        <td style={td}><input style={{ ...inp, padding: "5px 8px", width: 130 }} type="date" value={editingTxn.date} onChange={e => setEditingTxn(x => x ? { ...x, date: e.target.value } : x)} /></td>
+                        <td style={td}><DatePickerField size="sm" value={editingTxn.date} onChange={d => setEditingTxn(x => x ? { ...x, date: d } : x)} menuAlign="end" style={{ width: 130 }} /></td>
                         <td style={td}>
-                          <select style={{ ...sel, padding: "5px 8px", width: 150 }} value={editingTxn.name} onChange={e => { const type = budgetMap[e.target.value]?.type || editingTxn.type; setEditingTxn(x => x ? { ...x, name: e.target.value, type } : x); }}>
-                            {TRANSACTION_TYPES.map(type => (<optgroup key={type} label={type}>{budgets.filter(b => b.type === type).map(b => <option key={b.name} value={b.name}>{b.name}</option>)}</optgroup>))}
-                          </select>
+                          <SelectPicker
+                            value={editingTxn.name}
+                            onChange={v => {
+                              const type = budgetMap[v]?.type || editingTxn.type;
+                              setEditingTxn(x => x ? { ...x, name: v, type } : x);
+                            }}
+                            groups={categoryGroups}
+                            size="sm"
+                            menuAlign="start"
+                            style={{ width: 150 }}
+                          />
                         </td>
                         <td style={td}><span style={badge(editingTxn.type)}>{TYPE_META[editingTxn.type]?.label || editingTxn.type}</span></td>
                         <td style={{ ...td, textAlign: "right" }}><input style={{ ...inp, padding: "5px 8px", width: 90, textAlign: "right" }} type="number" step="0.01" value={editingTxn.amount} onChange={e => setEditingTxn(x => x ? { ...x, amount: e.target.value } : x)} /></td>

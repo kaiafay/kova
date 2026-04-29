@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { SelectPicker } from "@/components/select-picker";
 import { useBudget } from "@/lib/budget-context";
 import { TRANSACTION_TYPES, TYPE_META as TYPE_META_STRICT } from "@/lib/transaction-types";
 const TYPE_META: Record<string, { color: string; bg: string; label: string }> = TYPE_META_STRICT;
@@ -19,7 +20,6 @@ const inp = {
   padding: "9px 12px", borderRadius: 8, fontSize: 13.5, width: "100%",
   boxSizing: "border-box" as const, outline: "none", fontFamily: "inherit",
 };
-const sel = { ...inp, cursor: "pointer" };
 const btn = (v = "primary") => ({
   padding: "9px 20px", borderRadius: 8, border: "none", cursor: "pointer",
   fontSize: 13.5, fontWeight: 600 as const, fontFamily: "inherit",
@@ -199,9 +199,13 @@ function CategoriesTab() {
           </div>
           <div style={{ flex: "1 1 140px", minWidth: 130 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 5 }}>Type</label>
-            <select style={sel} value={newType} onChange={e => setNewType(e.target.value)}>
-              {TRANSACTION_TYPES.map(t => <option key={t} value={t}>{TYPE_META[t].label}</option>)}
-            </select>
+            <SelectPicker
+              value={newType}
+              onChange={setNewType}
+              options={TRANSACTION_TYPES.map(t => ({ value: t, label: TYPE_META[t].label }))}
+              menuAlign="start"
+              triggerStyle={{ width: "100%" }}
+            />
           </div>
           <div style={{ flex: "1 1 120px", minWidth: 110 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.muted, display: "block", marginBottom: 5 }}>Monthly Budget</label>

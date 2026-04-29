@@ -48,3 +48,79 @@ body {
     padding: 0 12px;
   }
 }
+
+/* react-day-picker: compact size + Kova colors (default lib CSS uses 44px cells + large caption) */
+.kova-day-picker.rdp-root {
+  --rdp-accent-color: #2563eb;
+  --rdp-accent-background-color: #eff6ff;
+  --rdp-day-height: 30px;
+  --rdp-day-width: 30px;
+  --rdp-day_button-height: 28px;
+  --rdp-day_button-width: 28px;
+  --rdp-day_button-border-radius: 7px;
+  --rdp-day_button-border: 1px solid transparent;
+  --rdp-selected-border: 1px solid #93c5fd;
+  --rdp-today-color: #2563eb;
+  --rdp-nav_button-height: 28px;
+  --rdp-nav_button-width: 28px;
+  --rdp-nav-height: 32px;
+  --rdp-nav_button-disabled-opacity: 0.35;
+  --rdp-weekday-padding: 0.15rem 0;
+}
+
+.kova-day-picker .rdp-month_caption {
+  font-size: 13px !important;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.kova-day-picker .rdp-selected {
+  font-size: 12px !important;
+  font-weight: 600;
+}
+
+.kova-day-picker .rdp-weekday {
+  font-size: 10px !important;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  opacity: 1;
+}
+
+.kova-day-picker .rdp-day_button {
+  font-size: 12px;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.kova-day-picker .rdp-selected .rdp-day_button {
+  background-color: #eff6ff !important;
+  color: #2563eb !important;
+  border-color: #bfdbfe !important;
+}
+
+.kova-day-picker .rdp-outside .rdp-day_button {
+  color: #94a3b8;
+}
+
+.kova-day-picker .rdp-today:not(.rdp-outside):not(.rdp-selected) .rdp-day_button {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.kova-day-picker .rdp-button_previous,
+.kova-day-picker .rdp-button_next {
+  border-radius: 7px;
+  color: #64748b;
+}
+
+.kova-day-picker .rdp-button_previous:hover:not(:disabled),
+.kova-day-picker .rdp-button_next:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #2563eb;
+}
+
+.kova-day-picker .rdp-chevron {
+  fill: currentColor;
+}
