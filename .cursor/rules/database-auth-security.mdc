@@ -1,0 +1,53 @@
+---
+description: Database schema, migrations, Clerk auth, org isolation, and security conventions
+globs: lib/db/**/*.ts,drizzle/**/*.sql,drizzle/**/*.json,drizzle.config.ts,middleware.ts,app/api/**/*.ts,app/onboarding/**/*.tsx,components/budget-switcher.tsx
+alwaysApply: false
+---
+
+# Database, Auth, And Security
+
+## Database
+
+- Schema source of truth is `lib/db/schema.ts`; generated migrations are in `drizzle/`.
+- Drizzle config loads `.env` then `.env.local` and uses `DATABASE_URL`.
+- Tables are `transactions`, `budgets`, `checkins`, and `settings`.
+- Table names and columns use snake_case in Postgres and camelCase in TypeScript.
+- Primary keys are `serial("id").primaryKey()`.
+- Shared budget data is scoped by `orgId`; creator-owned rows also record `createdBy` where applicable.
+- `transactions`, `budgets`, and `checkins` have `orgId` indexes; `settings.orgId` is unique.
+- Dates are stored as text strings, not timestamp columns, for transaction/check-in dates.
+- Money-like fields use `numeric` and are handled as strings at the API/client boundary.
+- JSON settings fields are `merchantMap` and `monthlyNotes` on `settings`.
+
+## Auth And Organizations
+
+- Clerk is the auth provider. `ClerkProvider` is configured in `app/layout.tsx`.
+- `middleware.ts` protects app and API routes, allows sign-in and public sign-up flows, and redirects authenticated users without an organization to `/onboarding`.
+- Each Clerk organization represents one budget.
+- Creating a new budget means creating a Clerk organization, setting it active, and calling `/api/seed`.
+- Invites and membership deletion are managed through Clerk organization APIs, not local tables.
+- `settings.creatorId` marks the budget creator/owner for owner-only member removal behavior.
+
+## Security Rules
+
+- Every API route that touches user data must call `auth()` and require both `userId` and `orgId`.
+- Never accept `orgId`, `createdBy`, `creatorId`, or owner status from request bodies.
+- Never use request `userId` path params as proof of permission; compare against `auth()` and `settings.creatorId` as existing member routes do.
+- Validate and bound user input with Zod before database writes.
+- Keep merchant-map and monthly-notes size limits when editing settings behavior.
+- Keep seed behavior idempotent: if budgets already exist for the org, skip seeding.
+
+## Schema Changes
+
+- Update `lib/db/schema.ts` first.
+- Generate a migration with `npm run db:generate`.
+- Inspect generated SQL in `drizzle/` before considering it complete.
+- Update all affected API Zod schemas, inserts/updates, client interfaces in `lib/budget-context.tsx`, and UI parse/format logic.
+- If a new table affects stale-data detection, update `/api/last-updated`.
+
+## Never Do
+
+- Do not add database access to client components.
+- Do not put secrets in client code or public env vars.
+- Do not delete or rewrite existing migration files unless explicitly performing a migration cleanup.
+- Do not add a second source of truth for budget ownership outside Clerk organizations and `settings.creatorId`.

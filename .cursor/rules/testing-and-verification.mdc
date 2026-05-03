@@ -1,0 +1,41 @@
+---
+description: Commands and completion checks for Kova changes
+globs:
+alwaysApply: true
+---
+
+# Testing And Verification
+
+## Commands
+
+- Install/use dependencies with npm; `package-lock.json` is present.
+- Run lint with `npm run lint`.
+- Run production build with `npm run build`.
+- Run dev server with `npm run dev` when manual browser verification is needed.
+- Generate migrations with `npm run db:generate` after schema edits.
+- Apply migrations with `npm run db:migrate` only when intentionally updating the configured database.
+- Seed demo/default data with `npm run seed:demo` or POST `/api/seed` only when that is part of the task.
+
+## Verify Before Complete
+
+- For TypeScript, route, or shared state changes, run `npm run lint`.
+- For Next routing, server/client boundary, dynamic import, or build-sensitive changes, run `npm run build`.
+- For schema changes, run `npm run db:generate` and inspect the generated SQL.
+- For API changes, verify auth, Zod validation, `orgId` scoping, numeric string conversion, and client callers.
+- For dashboard UI changes, verify mobile, tablet, and desktop paths when the touched route uses `useDeviceTier()`.
+- For transaction changes, check manual add, CSV import if affected, duplicate detection, merchant-map behavior, and month filtering.
+- For settings/member changes, check creator vs collaborator behavior and self-removal behavior.
+- For polling/stale data changes, check `/api/last-updated` fingerprint coverage.
+
+## Always Do
+
+- Report which verification commands were run.
+- If a command cannot be run because environment variables, network, or services are missing, state that clearly.
+- Keep verification proportional: lint for most changes, build for structural app changes, migration generation for schema changes.
+
+## Never Do
+
+- Do not mark database work complete without considering migrations.
+- Do not mark auth or membership changes complete without checking server-side authorization.
+- Do not rely only on visual inspection for responsive route selectors.
+- Do not run production deploy commands unless explicitly asked.

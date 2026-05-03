@@ -25,7 +25,9 @@
 *.pem
 
 # local / editor / docs you don’t want in the repo
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/*.mdc
 *.md
 !README.md
 

@@ -1,0 +1,59 @@
+---
+description: Kova repo overview, architecture, search workflow, and shared conventions
+globs:
+alwaysApply: true
+---
+
+# Kova Project Overview
+
+Kova is a private Next.js App Router budget dashboard for shared budgets. It uses npm, Next 16, React 19, TypeScript strict mode, Clerk organizations for auth and budget ownership, Drizzle ORM, Postgres, Tailwind v4 via `app/globals.css`, Recharts, react-day-picker, and Zod.
+
+## Structure
+
+- App routes live in `app/`; dashboard routes are grouped under `app/(dashboard)`.
+- API route handlers live in `app/api/**/route.ts`.
+- Shared client data and mutations live in `lib/budget-context.tsx`.
+- Shared database code lives in `lib/db/index.ts` and `lib/db/schema.ts`.
+- Shared UI widgets live in `components/`.
+- Page-specific desktop/mobile components live near their route, e.g. `app/(dashboard)/_overview/*` and `app/(dashboard)/_transactions/*`.
+- Drizzle migrations live in `drizzle/` and are generated from `lib/db/schema.ts`.
+
+## Data Flow
+
+- `middleware.ts` protects nearly all routes with Clerk and redirects signed-in users without an active org to `/onboarding`.
+- `app/layout.tsx` wraps the app in `ClerkProvider`.
+- `app/(dashboard)/layout.tsx` wraps dashboard pages in `BudgetProvider`, renders `Nav`, polls `/api/last-updated`, and owns the check-in modal.
+- Client pages read shared budget state with `useBudget()` or page-specific hooks such as `useOverviewData()` and `useTransactionsData()`.
+- Client mutations call internal API routes, then update local `BudgetProvider` state.
+- Server route handlers authenticate with `auth()`, scope all database access by `orgId`, validate input with Zod, and return JSON.
+
+## Always Do
+
+- Search for an existing component, hook, route, schema field, or utility before adding a new one.
+- Use the `@/*` path alias for repo imports.
+- Keep conventions local to the feature area: overview logic in `_overview`, transaction logic in `_transactions`, shared widgets in `components`, shared data logic in `lib`.
+- Preserve the current app-router pattern: small route page chooses mobile/desktop where needed; implementation lives in sibling components.
+- Treat money and numeric Drizzle `numeric` fields as strings across API responses and parse with `parseFloat` in UI calculations.
+- Keep organization isolation in mind for every budget, transaction, check-in, settings, and member change.
+
+## Never Do
+
+- Do not introduce a second package manager; this repo uses `package-lock.json` and npm scripts.
+- Do not bypass `BudgetProvider` with duplicate client-side global state for transactions, budgets, check-ins, or settings.
+- Do not add broad generic architecture abstractions unless there is repeated repo-local code that clearly needs it.
+- Do not invent new transaction type strings; use `TRANSACTION_TYPES` and `TYPE_META` from `lib/transaction-types.ts`.
+- Do not assume a convention is global if it appears in only one file; say it is unclear and follow the nearest local pattern.
+
+## Search Before Editing
+
+- Start with `rg --files` to locate relevant files.
+- Search exact symbols first: `rg "useBudget|BudgetProvider|TRANSACTION_TYPES|TYPE_META|useDeviceTier"`.
+- For API changes, inspect the matching `app/api/**/route.ts`, `lib/db/schema.ts`, and every client call to that endpoint.
+- For UI changes, inspect the route page, its mobile/desktop implementations, shared hooks, and reusable components in `components/`.
+- For schema changes, inspect `lib/db/schema.ts`, `drizzle/`, all API handlers using that table, and all UI parsing of returned fields.
+
+## Unclear Areas And Safe Defaults
+
+- There is no dedicated test framework configured. Prefer focused manual reasoning plus `npm run lint` and `npm run build`.
+- Styling is mostly inline objects with a small global CSS file, not a full design-system package. Reuse nearby constants and shared widgets before creating new primitives.
+- `lib/api-error.ts` exists but most routes currently inline `NextResponse.json({ error }, { status })`; follow the local route style unless refactoring that route consistently.

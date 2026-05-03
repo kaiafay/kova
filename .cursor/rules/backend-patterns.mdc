@@ -1,0 +1,51 @@
+---
+description: API route and server-side patterns for Kova
+globs: app/api/**/*.ts,middleware.ts,app/**/*.tsx,lib/**/*.ts
+alwaysApply: false
+---
+
+# Backend Patterns
+
+## API Route Shape
+
+- API endpoints are Next App Router route handlers in `app/api/**/route.ts`.
+- Route handlers import `auth` from `@clerk/nextjs/server`, `NextRequest` when request data is needed, and `NextResponse` for JSON responses.
+- Dynamic route params are typed as promises, e.g. `{ params }: { params: Promise<{ id: string }> }`.
+- Input validation uses Zod schemas near the route handler.
+- Successful writes usually return inserted/updated rows from Drizzle `.returning()`.
+- Errors currently return `NextResponse.json({ error: "..." }, { status })`, with optional `issues` for Zod validation failures.
+
+## Data Access
+
+- Use `db` from `@/lib/db` and table exports from `@/lib/db/schema`.
+- Use Drizzle query helpers such as `eq`, `and`, `like`, `asc`, `count`, `sum`, and `max`.
+- Always constrain row reads, updates, and deletes by the active `orgId`.
+- For `numeric` columns, write strings with `String(value)` and expect strings back in the client.
+- For nullable numeric columns, write `null` when absent and `String(value)` when present.
+
+## Endpoint Patterns
+
+- `/api/transactions` supports paginated GET with `limit` and `offset`, optional `month=YYYY-MM`, and POST of one or many transactions.
+- `/api/transactions/[id]` supports PUT and DELETE with integer id validation and `orgId` scoping.
+- `/api/budgets` upserts budgets by `(orgId, name)` in application logic.
+- `/api/checkins` creates check-ins; `/api/checkins/[id]` deletes by id with `orgId` scoping.
+- `/api/settings` returns defaults when no row exists, stores JSON `merchantMap` and `monthlyNotes`, and computes `isOwner` from `creatorId`.
+- `/api/members` and `/api/members/[userId]` use Clerk organization membership APIs.
+- `/api/last-updated` returns a fingerprint used by client polling; include new data sources there if they should trigger dashboard refreshes.
+- `/api/seed` initializes default budgets and settings for a new Clerk organization.
+
+## Always Do
+
+- Return `401` if `!userId || !orgId`.
+- Validate route ids with `parseInt` and reject `NaN` with `400`.
+- Validate dates as `YYYY-MM-DD` and months as `YYYY-MM`.
+- Cap list sizes or input sizes when accepting user-controlled data, following existing limits.
+- Keep route handlers small and direct unless repeated route code has a clear local helper.
+
+## Never Do
+
+- Do not read, update, or delete budget data without `eq(table.orgId, orgId)`.
+- Do not trust Clerk client-side state for authorization; re-check with `auth()` in API routes.
+- Do not store JS numbers directly into Drizzle `numeric` fields in this repo; convert to strings.
+- Do not expose raw stack traces or server internals in JSON errors.
+- Do not make membership changes through the database; use Clerk organization APIs.

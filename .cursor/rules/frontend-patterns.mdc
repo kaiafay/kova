@@ -1,0 +1,51 @@
+---
+description: Frontend, component, responsive, and styling patterns for Kova
+globs: app/**/*.tsx,components/**/*.tsx,lib/**/*.tsx,lib/**/*.ts,app/globals.css
+alwaysApply: false
+---
+
+# Frontend Patterns
+
+## Component Model
+
+- Most dashboard UI is client-side; files that use hooks, Clerk client hooks, browser APIs, or dynamic responsive selection must start with `"use client"`.
+- Dashboard route pages often choose a mobile or desktop implementation via `useDeviceTier()`.
+- Desktop-only pages should render `DesktopOnlyStub` on mobile, matching calendar, trends, settings, and check-in patterns.
+- Use dynamic imports with `{ ssr: false }` for desktop dashboard implementations selected by device tier.
+- Put derived page data in local hooks such as `useOverviewData()` and `useTransactionsData()` when it is reused by mobile and desktop variants.
+
+## Reusable UI
+
+- Reuse `SelectPicker` for select/dropdown controls, including grouped transaction categories.
+- Reuse `DatePickerField` for date input and `MonthPicker` for month filtering.
+- Reuse `BudgetSwitcher`, `Nav`, `CheckinModal`, `KovaGem`, and `DesktopOnlyStub` instead of rebuilding equivalent UI.
+- Keep transaction category display based on `TYPE_META`; keep category ordering based on `TRANSACTION_TYPES`.
+
+## Responsive Rules
+
+- Use `lib/breakpoints.ts` as the source of truth for mobile/tablet/desktop tiers.
+- `useDeviceTier()` returns `null` until mounted; route selectors should return `null` during that state to avoid hydration mismatches.
+- Mobile overview and transactions have real mobile implementations; calendar, trends, settings, and check-in are desktop-only stubs on mobile unless intentionally expanded.
+- Existing breakpoint constants are mobile max 767px, tablet max 1279px, desktop min 1280px.
+
+## Styling
+
+- The repo primarily uses inline style objects with local `C`, `card`, `inp`, `btn`, `th`, and `td` constants.
+- Global CSS is reserved for app-wide base styles, nav padding, transaction form grid behavior, table scrolling, and react-day-picker overrides.
+- Preserve the Kova palette unless changing a full surface intentionally: background `#f8fafc`, surface `#ffffff`, border `#e2e8f0`, text `#0f172a`, muted `#64748b`, accent `#2563eb`.
+- Keep card-like dashboard panels close to the existing pattern: white surface, `1px` slate border, `12px` radius, subtle shadow.
+- Use `fontFamily: "inherit"` on custom inputs/buttons to match the app.
+
+## Always Do
+
+- Parse API money strings with `parseFloat` before calculations.
+- Keep month filters as `YYYY-MM` strings and transaction dates as `YYYY-MM-DD` strings.
+- Preserve accessibility behavior in custom pickers: focus return, Escape close, overlay close, aria labels, and keyboard handling.
+- Keep CSV import protections in transaction UI: file size limit, supported header detection, duplicate detection, and merchant-map updates.
+
+## Never Do
+
+- Do not create native `<select>` dropdowns for app controls where `SelectPicker` already fits.
+- Do not duplicate date parsing/formatting behavior if `DatePickerField`, `parseIsoDateLocal`, or `formatIsoDateLocal` applies.
+- Do not add new transaction categories without updating `lib/transaction-types.ts`, API Zod enums, seed data if needed, and all UI assumptions.
+- Do not render desktop components during SSR when the route currently uses dynamic import to avoid responsive or chart hydration issues.
