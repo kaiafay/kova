@@ -16,6 +16,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { useOverviewData } from "./use-overview-data";
+import { useDebtData } from "@/app/(dashboard)/debt/use-debt-data";
 import {
   TRANSACTION_TYPES,
   TYPE_META as TYPE_META_STRICT,
@@ -238,31 +239,17 @@ export function DesktopOverview() {
     return g;
   }, [budgetMap, monthTxns]);
 
-  const debtStats = useMemo(() => {
-    return Object.entries(budgetMap)
-      .filter(([, v]) => v.type === "DEBT PAYMENT" && v.startingBalance)
-      .map(([name, v]) => {
-        const totalPaid = transactions
-          .filter((t) => t.name === name && t.type === "DEBT PAYMENT")
-          .reduce((s, t) => s + parseFloat(t.amount), 0);
-        const remaining = Math.max(0, v.startingBalance! - totalPaid);
-        const pct = Math.min(
-          100,
-          Math.round((totalPaid / v.startingBalance!) * 100),
-        );
-        const monthlyPaid = monthTxns
-          .filter((t) => t.name === name)
-          .reduce((s, t) => s + parseFloat(t.amount), 0);
-        return {
-          name,
-          startingBalance: v.startingBalance!,
-          totalPaid,
-          remaining,
-          pct,
-          monthlyPaid,
-        };
-      });
-  }, [budgetMap, transactions, monthTxns]);
+  const { accounts: debtAccounts } = useDebtData();
+  const debtStats = debtAccounts
+    .filter((a) => a.startingBalance !== null && a.startingBalance > 0)
+    .map((a) => ({
+      name: a.name,
+      startingBalance: a.startingBalance!,
+      totalPaid: a.totalPaid,
+      remaining: a.remaining,
+      pct: a.percentPaid,
+      monthlyPaid: a.monthlyPaid,
+    }));
 
   const notesValue =
     notesDraft !== null ? notesDraft : settings.monthlyNotes[filterMonth] || "";
