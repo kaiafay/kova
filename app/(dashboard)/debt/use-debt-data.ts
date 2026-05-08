@@ -58,7 +58,9 @@ export function calculateDebtAccounts(
   const debtBudgets = budgets.filter((b) => b.type === "DEBT PAYMENT");
 
   return debtBudgets.map((b) => {
-    const startingBalance = b.startingBalance ? parseFloat(b.startingBalance) : null;
+    const raw = b.startingBalance;
+    const startingBalance =
+      raw !== null && raw !== undefined && raw !== "" ? parseFloat(raw) : null;
     const monthlyPlanned = parseFloat(b.budgetAmount);
 
     const payments = transactions.filter(
@@ -71,7 +73,7 @@ export function calculateDebtAccounts(
       startingBalance !== null ? Math.max(0, startingBalance - totalPaid) : 0;
 
     const percentPaid =
-      startingBalance && startingBalance > 0
+      startingBalance !== null && startingBalance > 0
         ? Math.min(100, Math.round((totalPaid / startingBalance) * 100))
         : 0;
 
@@ -127,7 +129,8 @@ function deriveStatus(
   monthlyPlanned: number,
   remaining: number,
 ): DebtStatus {
-  if (!startingBalance) return "missing-balance";
+  if (startingBalance === null) return "missing-balance";
+  if (startingBalance === 0) return "paid-off";
   if (remaining === 0 && totalPaid > 0) return "paid-off";
   if (totalPaid === 0) return "no-payments";
   if (monthlyPlanned > 0 && monthlyPaid >= monthlyPlanned) return "on-track";
@@ -190,7 +193,7 @@ export function buildDebtWarnings(
         message: `"${acc.name}" has no starting balance. Set one in Settings to track payoff progress.`,
       });
     }
-    if (acc.totalPaid === 0 && acc.startingBalance) {
+    if (acc.totalPaid === 0 && acc.startingBalance !== null && acc.startingBalance > 0) {
       warnings.push({
         type: "no-payments",
         accountName: acc.name,
