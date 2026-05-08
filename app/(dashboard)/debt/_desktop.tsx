@@ -1,5 +1,14 @@
 "use client";
 import Link from "next/link";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 import { useDebtData } from "./use-debt-data";
 import type { DebtAccount } from "./use-debt-data";
 
@@ -81,6 +90,50 @@ function StatusBadge({ status }: { status: DebtAccount["status"] }) {
     </span>
   );
 }
+
+const CT = ({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color?: string }>;
+  label?: string;
+}) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div
+      style={{
+        background: "#fff",
+        border: "1px solid #e5e7eb",
+        borderRadius: 8,
+        padding: "10px 14px",
+        fontSize: 12,
+        boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+      }}
+    >
+      {label && (
+        <div style={{ color: "#6b7280", marginBottom: 4, fontWeight: 600 }}>
+          {label}
+        </div>
+      )}
+      {payload.map((p, i) => (
+        <div
+          key={i}
+          style={{
+            color: p.color || "#374151",
+            display: "flex",
+            gap: 12,
+            justifyContent: "space-between",
+          }}
+        >
+          <span>{p.name}:</span>
+          <span style={{ fontWeight: 700 }}>{fmt(p.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 function AccountProgressCard({ acc }: { acc: DebtAccount }) {
   const isPaidOff = acc.status === "paid-off";
@@ -464,6 +517,114 @@ export default function DesktopDebt() {
                 <AccountProgressCard key={acc.name} acc={acc} />
               ))}
             </div>
+          </div>
+
+          {/* Payment History Chart */}
+          <div style={{ ...card, marginBottom: 20 }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: C.muted,
+                textTransform: "uppercase",
+                letterSpacing: 0.6,
+                marginBottom: 4,
+              }}
+            >
+              Payment History
+            </div>
+
+            {totals.monthlyHistory.length === 0 ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "32px 0",
+                  color: C.subtle,
+                  fontSize: 13.5,
+                }}
+              >
+                No debt payments recorded yet.
+              </div>
+            ) : (
+              <>
+                {/* Supporting metrics */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 24,
+                    marginBottom: 16,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {[
+                    {
+                      label: "Avg Monthly Payment",
+                      val: fmtK(totals.avgMonthlyPayment),
+                      color: C.accent,
+                    },
+                    totals.highestPaymentMonth
+                      ? {
+                          label: "Best Month",
+                          val: `${totals.highestPaymentMonth.month} · ${fmtK(totals.highestPaymentMonth.paid)}`,
+                          color: C.green,
+                        }
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .map((m) => (
+                      <div key={m!.label}>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: C.subtle,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.4,
+                          }}
+                        >
+                          {m!.label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 15,
+                            fontWeight: 700,
+                            color: m!.color,
+                          }}
+                        >
+                          {m!.val}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart
+                    data={totals.monthlyHistory}
+                    barCategoryGap="30%"
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke={C.borderL} />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fill: C.subtle, fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fill: C.subtle, fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`}
+                    />
+                    <Tooltip content={<CT />} />
+                    <Bar
+                      dataKey="paid"
+                      name="Paid"
+                      fill={C.accent}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </>
+            )}
           </div>
         </>
       )}
