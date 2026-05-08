@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { MonthPicker } from "@/components/month-picker";
 import {
   PieChart,
@@ -621,15 +622,34 @@ export function DesktopOverview() {
         <div style={{ ...card, marginBottom: 14 }}>
           <div
             style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: C.muted,
-              textTransform: "uppercase",
-              letterSpacing: 0.6,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
               marginBottom: 16,
             }}
           >
-            Debt Payoff Progress
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: C.muted,
+                textTransform: "uppercase",
+                letterSpacing: 0.6,
+              }}
+            >
+              Debt Payoff Progress
+            </div>
+            <Link
+              href="/debt"
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: C.accent,
+                textDecoration: "none",
+              }}
+            >
+              View Debt Planner →
+            </Link>
           </div>
           <div className="grid grid-cols-1 min-[1024px]:grid-cols-2 gap-4">
             {debtStats.map((d) => (
