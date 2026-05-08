@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { useDebtData, selectDebtTarget } from "./use-debt-data";
 import type { DebtAccount } from "./use-debt-data";
+import { SelectPicker } from "@/components/select-picker";
 
 const C = {
   bg: "#f8fafc",
@@ -810,18 +811,14 @@ export default function DesktopDebt() {
                   )}
                 </div>
                 {planMethod === "custom" ? (
-                  <select
+                  <SelectPicker
                     value={customTarget ?? ""}
-                    onChange={(e) => setCustomTarget(e.target.value || null)}
-                    style={{ ...inp, width: "100%" }}
-                  >
-                    <option value="">— Select account —</option>
-                    {activeAccounts.map((a) => (
-                      <option key={a.name} value={a.name}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setCustomTarget(v || null)}
+                    options={activeAccounts.map((a) => ({ value: a.name, label: a.name }))}
+                    allowEmpty
+                    emptyLabel="— Select account —"
+                    style={{ width: "100%" }}
+                  />
                 ) : (
                   <div
                     style={{
