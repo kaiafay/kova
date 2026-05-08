@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
 import {
   BarChart,
@@ -9,7 +10,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import { useDebtData } from "./use-debt-data";
+import { useDebtData, selectDebtTarget } from "./use-debt-data";
 import type { DebtAccount } from "./use-debt-data";
 
 const C = {
@@ -274,10 +275,29 @@ function AccountProgressCard({ acc }: { acc: DebtAccount }) {
   );
 }
 
+const inp = {
+  background: C.surf,
+  border: `1px solid ${C.border}`,
+  color: C.text,
+  padding: "8px 12px",
+  borderRadius: 8,
+  fontSize: 13.5,
+  outline: "none",
+  fontFamily: "inherit",
+};
+
 export default function DesktopDebt() {
   const { accounts, totals } = useDebtData();
 
+  const [planMethod, setPlanMethod] = useState<"snowball" | "avalanche" | "custom">("snowball");
+  const [extraPayment, setExtraPayment] = useState("");
+  const [customTarget, setCustomTarget] = useState<string | null>(null);
+
   const hasAccounts = accounts.length > 0;
+
+  const extraAmt = Math.max(0, parseFloat(extraPayment) || 0);
+  const activeAccounts = accounts.filter((a) => a.remaining > 0);
+  const target = selectDebtTarget(accounts, planMethod, customTarget);
 
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "28px 24px" }}>
@@ -625,6 +645,305 @@ export default function DesktopDebt() {
                 </ResponsiveContainer>
               </>
             )}
+          </div>
+
+          {/* Strategy Planner */}
+          <div style={{ ...card, marginBottom: 20 }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: C.muted,
+                textTransform: "uppercase",
+                letterSpacing: 0.6,
+                marginBottom: 16,
+              }}
+            >
+              Strategy Planner
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: C.subtle,
+                marginBottom: 16,
+                fontStyle: "italic",
+              }}
+            >
+              Estimates are based on current balances and payment history, not
+              true interest amortization (APR not yet tracked).
+            </div>
+
+            <div
+              className="grid grid-cols-1 min-[768px]:grid-cols-3 gap-4"
+              style={{ marginBottom: 20 }}
+            >
+              {/* Method selector */}
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: C.muted,
+                    marginBottom: 6,
+                  }}
+                >
+                  Payoff Method
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {(
+                    [
+                      { val: "snowball", label: "Snowball", desc: "Lowest balance first" },
+                      { val: "avalanche", label: "Avalanche", desc: "Requires APR (coming soon)" },
+                      { val: "custom", label: "Custom", desc: "Choose target account" },
+                    ] as const
+                  ).map((m) => {
+                    const disabled = m.val === "avalanche";
+                    return (
+                      <label
+                        key={m.val}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          cursor: disabled ? "not-allowed" : "pointer",
+                          opacity: disabled ? 0.45 : 1,
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="payoffMethod"
+                          value={m.val}
+                          checked={planMethod === m.val}
+                          disabled={disabled}
+                          onChange={() => setPlanMethod(m.val)}
+                          style={{ accentColor: C.accent }}
+                        />
+                        <span>
+                          <span style={{ fontWeight: 600, fontSize: 13 }}>
+                            {m.label}
+                          </span>{" "}
+                          <span style={{ color: C.subtle, fontSize: 12 }}>
+                            — {m.desc}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Custom target */}
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: C.muted,
+                    marginBottom: 6,
+                  }}
+                >
+                  Target Account
+                  {planMethod !== "custom" && (
+                    <span style={{ color: C.subtle, fontWeight: 400 }}>
+                      {" "}
+                      (auto)
+                    </span>
+                  )}
+                </div>
+                {planMethod === "custom" ? (
+                  <select
+                    value={customTarget ?? ""}
+                    onChange={(e) => setCustomTarget(e.target.value || null)}
+                    style={{ ...inp, width: "100%" }}
+                  >
+                    <option value="">— Select account —</option>
+                    {activeAccounts.map((a) => (
+                      <option key={a.name} value={a.name}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div
+                    style={{
+                      ...inp,
+                      background: C.bg,
+                      color: target ? C.text : C.subtle,
+                    }}
+                  >
+                    {target ? target.name : activeAccounts.length === 0 ? "All paid off" : "—"}
+                  </div>
+                )}
+
+                {target && (
+                  <div style={{ marginTop: 6, fontSize: 12, color: C.muted }}>
+                    Remaining:{" "}
+                    <strong style={{ color: C.red }}>
+                      {fmtK(target.remaining)}
+                    </strong>
+                  </div>
+                )}
+              </div>
+
+              {/* Extra payment */}
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: C.muted,
+                    marginBottom: 6,
+                  }}
+                >
+                  Extra Monthly Payment
+                </div>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="0.00"
+                  value={extraPayment}
+                  onChange={(e) => setExtraPayment(e.target.value)}
+                  style={{ ...inp, width: "100%", boxSizing: "border-box" as const }}
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    marginTop: 8,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {[50, 100, 250].map((amt) => (
+                    <button
+                      key={amt}
+                      onClick={() =>
+                        setExtraPayment(String((extraAmt + amt).toFixed(2)))
+                      }
+                      style={{
+                        border: `1px solid ${C.border}`,
+                        background: C.bg,
+                        borderRadius: 6,
+                        padding: "4px 10px",
+                        fontSize: 12,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        color: C.muted,
+                      }}
+                    >
+                      +${amt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Suggested Monthly Allocation */}
+            <div
+              style={{
+                background: C.bg,
+                borderRadius: 10,
+                padding: 16,
+                border: `1px solid ${C.borderL}`,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: C.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                  marginBottom: 12,
+                }}
+              >
+                Suggested Monthly Allocation
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  marginBottom: 12,
+                }}
+              >
+                {activeAccounts.map((acc) => {
+                  const isTarget = target?.name === acc.name;
+                  const amount = acc.monthlyPlanned + (isTarget ? extraAmt : 0);
+                  return (
+                    <div
+                      key={acc.name}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "6px 10px",
+                        borderRadius: 7,
+                        background: isTarget ? "#eff6ff" : "transparent",
+                        border: isTarget
+                          ? `1px solid #bfdbfe`
+                          : "1px solid transparent",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: isTarget ? 700 : 400,
+                          color: isTarget ? C.accent : C.text,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          flex: 1,
+                          marginRight: 8,
+                        }}
+                      >
+                        {acc.name}
+                        {isTarget && extraAmt > 0 && (
+                          <span
+                            style={{
+                              marginLeft: 6,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: C.green,
+                              background: "#dcfce7",
+                              borderRadius: 4,
+                              padding: "1px 5px",
+                            }}
+                          >
+                            +{fmtK(extraAmt)} extra
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          fontSize: 13,
+                          color: isTarget ? C.accent : C.text,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {fmtK(amount)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  borderTop: `1px solid ${C.border}`,
+                  paddingTop: 10,
+                  fontWeight: 700,
+                  fontSize: 14,
+                }}
+              >
+                <span style={{ color: C.text }}>Total Monthly Debt Payment</span>
+                <span style={{ color: C.accent }}>
+                  {fmtK(totals.monthlyPlanned + extraAmt)}
+                </span>
+              </div>
+            </div>
           </div>
         </>
       )}
