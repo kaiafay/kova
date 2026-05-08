@@ -1,5 +1,4 @@
 "use client";
-import { useState } from "react";
 import Link from "next/link";
 import { useDebtData } from "./use-debt-data";
 import type { DebtAccount } from "./use-debt-data";
@@ -83,9 +82,147 @@ function StatusBadge({ status }: { status: DebtAccount["status"] }) {
   );
 }
 
+function AccountProgressCard({ acc }: { acc: DebtAccount }) {
+  const isPaidOff = acc.status === "paid-off";
+  const hasMissingBalance = acc.startingBalance === null;
+  const barPct = hasMissingBalance ? 0 : acc.percentPaid;
+  const barColor = isPaidOff
+    ? `linear-gradient(90deg,${C.green},#4ade80)`
+    : `linear-gradient(90deg,${C.accent},#60a5fa)`;
+
+  const monthsLeft =
+    acc.estimatedMonthsRemaining !== null
+      ? acc.estimatedMonthsRemaining === 0
+        ? "Paid off"
+        : `~${acc.estimatedMonthsRemaining} mo left`
+      : "Unknown";
+
+  return (
+    <div
+      style={{
+        background: isPaidOff ? "#f0fdf4" : C.bg,
+        borderRadius: 10,
+        padding: 16,
+        border: `1px solid ${isPaidOff ? "#bbf7d0" : C.border}`,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 8,
+        }}
+      >
+        <div
+          style={{
+            fontWeight: 700,
+            fontSize: 14,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            flex: 1,
+            marginRight: 8,
+          }}
+          title={acc.name}
+        >
+          {acc.name}
+        </div>
+        <div style={{ fontSize: 12, color: C.muted, flexShrink: 0 }}>
+          {hasMissingBalance ? "—" : `${acc.percentPaid}% paid`}
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div
+        style={{
+          background: C.border,
+          borderRadius: 99,
+          height: 8,
+          marginBottom: 10,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            borderRadius: 99,
+            background: hasMissingBalance ? C.subtle : barColor,
+            width: `${barPct}%`,
+            transition: "width 0.5s",
+          }}
+        />
+      </div>
+
+      {hasMissingBalance && (
+        <div
+          style={{
+            fontSize: 11,
+            color: C.amber,
+            fontWeight: 600,
+            marginBottom: 8,
+          }}
+        >
+          No starting balance — set one in Settings
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
+          gap: 6,
+          marginBottom: 8,
+        }}
+      >
+        {[
+          { label: "Remaining", val: fmtK(acc.remaining), color: C.red },
+          { label: "Total Paid", val: fmtK(acc.totalPaid), color: C.green },
+          { label: "This Month", val: fmtK(acc.monthlyPaid), color: C.accent },
+        ].map((s) => (
+          <div key={s.label} style={{ textAlign: "center" }}>
+            <div
+              style={{ fontSize: 15, fontWeight: 800, color: s.color }}
+            >
+              {s.val}
+            </div>
+            <div
+              style={{
+                fontSize: 10,
+                color: C.subtle,
+                textTransform: "uppercase",
+                letterSpacing: 0.4,
+                marginTop: 2,
+              }}
+            >
+              {s.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          fontSize: 12,
+          color: C.muted,
+          borderTop: `1px solid ${C.borderL}`,
+          paddingTop: 8,
+        }}
+      >
+        <span>
+          Monthly plan:{" "}
+          <strong style={{ color: C.text }}>{fmtK(acc.monthlyPlanned)}</strong>
+        </span>
+        <span style={{ color: isPaidOff ? C.green : C.muted }}>{monthsLeft}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function DesktopDebt() {
   const { accounts, totals } = useDebtData();
-  const [_tab] = useState("table");
 
   const hasAccounts = accounts.length > 0;
 
@@ -305,6 +442,27 @@ export default function DesktopDebt() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* Per-account Progress Cards */}
+          <div style={{ ...card, marginBottom: 20 }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: C.muted,
+                textTransform: "uppercase",
+                letterSpacing: 0.6,
+                marginBottom: 16,
+              }}
+            >
+              Account Progress
+            </div>
+            <div className="grid grid-cols-1 min-[1024px]:grid-cols-2 gap-4">
+              {accounts.map((acc) => (
+                <AccountProgressCard key={acc.name} acc={acc} />
+              ))}
             </div>
           </div>
         </>
