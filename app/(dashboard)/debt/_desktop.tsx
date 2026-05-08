@@ -287,7 +287,7 @@ const inp = {
 };
 
 export default function DesktopDebt() {
-  const { accounts, totals } = useDebtData();
+  const { accounts, totals, warnings } = useDebtData();
 
   const [planMethod, setPlanMethod] = useState<"snowball" | "avalanche" | "custom">("snowball");
   const [extraPayment, setExtraPayment] = useState("");
@@ -314,6 +314,65 @@ export default function DesktopDebt() {
           Debt
         </div>
       </div>
+
+      {/* Data Quality Warnings */}
+      {warnings.length > 0 && (
+        <div
+          style={{
+            background: "#fffbeb",
+            border: `1px solid #fde68a`,
+            borderRadius: 10,
+            padding: "12px 16px",
+            marginBottom: 20,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: C.amber,
+              textTransform: "uppercase",
+              letterSpacing: 0.6,
+              marginBottom: 8,
+            }}
+          >
+            Data Quality Warnings
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            {warnings.map((w, i) => (
+              <div
+                key={i}
+                style={{
+                  fontSize: 13,
+                  color: C.text,
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 8,
+                }}
+              >
+                <span style={{ color: C.amber, flexShrink: 0, marginTop: 1 }}>
+                  ⚠
+                </span>
+                <span>
+                  {w.message}
+                  {(w.type === "missing-starting-balance" ||
+                    w.type === "zero-planned-payment") && (
+                    <>
+                      {" "}
+                      <Link
+                        href="/settings"
+                        style={{ color: C.accent, textDecoration: "underline" }}
+                      >
+                        Go to Settings
+                      </Link>
+                    </>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {!hasAccounts ? (
         <div style={{ ...card, textAlign: "center", padding: "48px 24px" }}>
