@@ -222,6 +222,19 @@ function AccountProgressCard({ acc }: { acc: DebtAccount }) {
         </div>
       )}
 
+      {acc.isStale && !hasMissingBalance && (
+        <div
+          style={{
+            fontSize: 11,
+            color: C.amber,
+            fontWeight: 600,
+            marginBottom: 8,
+          }}
+        >
+          No payment in {acc.daysSinceLastPayment}d
+        </div>
+      )}
+
       <div
         style={{
           display: "grid",

@@ -22,6 +22,8 @@ export interface DebtAccount {
   estimatedMonthsRemaining: number | null;
   status: DebtStatus;
   monthlyHistory: { month: string; paid: number }[];
+  daysSinceLastPayment: number | null;
+  isStale: boolean;
 }
 
 export interface DebtTotals {
@@ -43,7 +45,8 @@ export interface DebtWarning {
     | "no-payments"
     | "unmatched-transactions"
     | "overpaid"
-    | "zero-planned-payment";
+    | "zero-planned-payment"
+    | "stale-payments";
   accountName?: string;
   message: string;
 }
@@ -86,6 +89,16 @@ export function calculateDebtAccounts(
 
     const monthlyHistory = buildMonthlyHistory(payments);
 
+    const today = new Date();
+    const daysSinceLastPayment = latestPaymentDate
+      ? Math.floor(
+          (today.getTime() - new Date(latestPaymentDate).getTime()) /
+            (1000 * 60 * 60 * 24),
+        )
+      : null;
+    const isStale =
+      daysSinceLastPayment !== null && daysSinceLastPayment > 60 && remaining > 0;
+
     const avgPayment =
       monthlyHistory.length > 0
         ? monthlyHistory.reduce((s, m) => s + m.paid, 0) / monthlyHistory.length
@@ -118,6 +131,8 @@ export function calculateDebtAccounts(
       estimatedMonthsRemaining,
       status,
       monthlyHistory,
+      daysSinceLastPayment,
+      isStale,
     };
   });
 }
@@ -219,6 +234,13 @@ export function buildDebtWarnings(
         type: "zero-planned-payment",
         accountName: acc.name,
         message: `"${acc.name}" has no planned monthly payment amount set.`,
+      });
+    }
+    if (acc.isStale && acc.daysSinceLastPayment !== null) {
+      warnings.push({
+        type: "stale-payments",
+        accountName: acc.name,
+        message: `"${acc.name}" has had no payments in ${acc.daysSinceLastPayment} days.`,
       });
     }
   }
