@@ -170,7 +170,6 @@ const CT = ({
 
 export function DesktopOverview() {
   const {
-    transactions,
     settings,
     filterMonth,
     setFilterMonth,
