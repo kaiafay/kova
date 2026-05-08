@@ -46,7 +46,8 @@ export interface DebtWarning {
     | "unmatched-transactions"
     | "overpaid"
     | "zero-planned-payment"
-    | "stale-payments";
+    | "stale-payments"
+    | "possible-paid-off";
   accountName?: string;
   message: string;
 }
@@ -206,6 +207,13 @@ export function buildDebtWarnings(
         type: "missing-starting-balance",
         accountName: acc.name,
         message: `"${acc.name}" has no starting balance. Set one in Settings to track payoff progress.`,
+      });
+    }
+    if (acc.startingBalance === null && acc.totalPaid > 0) {
+      warnings.push({
+        type: "possible-paid-off",
+        accountName: acc.name,
+        message: `"${acc.name}" may be paid off — payments exist but no starting balance is set. Verify in Settings.`,
       });
     }
     if (acc.totalPaid === 0 && acc.startingBalance !== null && acc.startingBalance > 0) {
