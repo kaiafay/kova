@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { href: "/transactions", label: "Transactions" },
   { href: "/calendar", label: "Calendar" },
   { href: "/trends", label: "Trends" },
+  { href: "/debt", label: "Debt" },
   { href: "/checkin", label: "Check-in" },
   { href: "/settings", label: "Settings" },
 ];
