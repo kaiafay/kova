@@ -250,6 +250,7 @@ export function DesktopOverview() {
       pct: a.percentPaid,
       monthlyPaid: a.monthlyPaid,
     }));
+  const hasAnyDebt = debtAccounts.length > 0;
 
   const notesValue =
     notesDraft !== null ? notesDraft : settings.monthlyNotes[filterMonth] || "";
@@ -617,7 +618,7 @@ export function DesktopOverview() {
         ))}
       </div>
 
-      {debtStats.length > 0 && (
+      {hasAnyDebt && (
         <div style={{ ...card, marginBottom: 14 }}>
           <div
             style={{
@@ -650,6 +651,11 @@ export function DesktopOverview() {
               View Debt Planner →
             </Link>
           </div>
+          {debtStats.length === 0 && (
+            <div style={{ fontSize: 13, color: C.muted, padding: "4px 0 8px" }}>
+              Set starting balances in Settings to track payoff progress.
+            </div>
+          )}
           <div className="grid grid-cols-1 min-[1024px]:grid-cols-2 gap-4">
             {debtStats.map((d) => (
               <div
