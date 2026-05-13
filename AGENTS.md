@@ -68,6 +68,11 @@ curl -X POST "https://api.clerk.com/v1/sessions" \
 curl -X POST "https://api.clerk.com/v1/sessions/<session_id>/tokens" \
   -H "Authorization: Bearer $CLERK_SECRET_KEY"
 
-# 5. Call app API routes
+# 5. Seed default budgets for the org, then call app API routes
+curl -X POST -H "Authorization: Bearer <jwt>" http://localhost:3000/api/seed
 curl -H "Authorization: Bearer <jwt>" http://localhost:3000/api/budgets
 ```
+
+### New org setup
+
+After creating a Clerk organization (or after a user creates one via onboarding), `POST /api/seed` must be called to populate default budget categories. Without seeding, the transaction form's category dropdown will be empty and transactions cannot be added through the UI.
