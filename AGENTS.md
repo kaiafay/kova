@@ -73,6 +73,6 @@ curl -X POST -H "Authorization: Bearer <jwt>" http://localhost:3000/api/seed
 curl -H "Authorization: Bearer <jwt>" http://localhost:3000/api/budgets
 ```
 
-### New org setup
+### New org setup (agent-only concern)
 
-After creating a Clerk organization (or after a user creates one via onboarding), `POST /api/seed` must be called to populate default budget categories. Without seeding, the transaction form's category dropdown will be empty and transactions cannot be added through the UI.
+The app's onboarding page and budget switcher already call `POST /api/seed` automatically when a user creates a new organization through the UI — no bug here. However, if you create an organization via the **Clerk Backend API** (as the API testing workflow above does), the seed step is skipped. In that case, manually call `POST /api/seed` with an authenticated session to populate default budget categories.
