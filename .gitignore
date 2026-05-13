@@ -30,6 +30,7 @@
 !.cursor/rules/*.mdc
 *.md
 !README.md
+!AGENTS.md
 
 # debug
 npm-debug.log*
