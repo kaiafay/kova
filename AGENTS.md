@@ -39,11 +39,21 @@ These are injected as VM secrets. Without valid Clerk keys, the dev server start
 - **Drizzle migrations folder**: The `drizzle/` directory may not exist on a fresh clone. Run `npm run db:generate` to create it, then `npm run db:migrate` to apply.
 - **PostgreSQL must be running** before `npm run db:migrate` or `npm run dev` (if the app queries the DB at startup).
 - **Clerk is required for runtime**: The app cannot serve any authenticated page without valid Clerk API keys. Lint and build work without them.
-- **Clerk browser sign-in may be blocked by device verification**: Clerk enforces email-based 2FA for new devices even in dev mode. To test API routes without browser auth, create a Clerk session via the Backend API and use the JWT as a Bearer token. See the workflow below.
+### Browser sign-in for UI testing (Clerk test mode)
+
+Clerk test mode is enabled on the dev instance. To sign up and authenticate in the browser without a real email inbox:
+
+1. Navigate to `http://localhost:3000/sign-up` (use an Incognito window for a clean session).
+2. Enter a test email using the `+clerk_test` suffix, e.g. `agent+clerk_test@example.com`.
+3. Enter any password and submit.
+4. On the verification code screen, enter `424242`.
+5. You'll land on the onboarding page — create a budget to reach the dashboard.
+
+This flow is fully autonomous and does not require email access.
 
 ### Testing API routes without browser sign-in
 
-When browser-based Clerk sign-in is impractical (e.g., email verification is required but no inbox is available), use the Clerk Backend API to create authenticated sessions:
+When you need to test API routes directly (e.g. from curl or scripts), use the Clerk Backend API to create authenticated sessions:
 
 ```bash
 # 1. Create a user (if needed)
@@ -73,6 +83,4 @@ curl -X POST -H "Authorization: Bearer <jwt>" http://localhost:3000/api/seed
 curl -H "Authorization: Bearer <jwt>" http://localhost:3000/api/budgets
 ```
 
-### New org setup (agent-only concern)
-
-The app's onboarding page and budget switcher already call `POST /api/seed` automatically when a user creates a new organization through the UI — no bug here. However, if you create an organization via the **Clerk Backend API** (as the API testing workflow above does), the seed step is skipped. In that case, manually call `POST /api/seed` with an authenticated session to populate default budget categories.
+Note: when creating orgs via the Backend API (not the app UI), `POST /api/seed` must be called manually to populate default budget categories. The app's onboarding page does this automatically.
