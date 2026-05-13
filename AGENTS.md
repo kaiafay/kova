@@ -39,3 +39,35 @@ These are injected as VM secrets. Without valid Clerk keys, the dev server start
 - **Drizzle migrations folder**: The `drizzle/` directory may not exist on a fresh clone. Run `npm run db:generate` to create it, then `npm run db:migrate` to apply.
 - **PostgreSQL must be running** before `npm run db:migrate` or `npm run dev` (if the app queries the DB at startup).
 - **Clerk is required for runtime**: The app cannot serve any authenticated page without valid Clerk API keys. Lint and build work without them.
+- **Clerk browser sign-in may be blocked by device verification**: Clerk enforces email-based 2FA for new devices even in dev mode. To test API routes without browser auth, create a Clerk session via the Backend API and use the JWT as a Bearer token. See the workflow below.
+
+### Testing API routes without browser sign-in
+
+When browser-based Clerk sign-in is impractical (e.g., email verification is required but no inbox is available), use the Clerk Backend API to create authenticated sessions:
+
+```bash
+# 1. Create a user (if needed)
+curl -X POST "https://api.clerk.com/v1/users" \
+  -H "Authorization: Bearer $CLERK_SECRET_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"email_address":["test@example.com"],"password":"SomeUniquePass!","skip_password_checks":true}'
+
+# 2. Create an organization for the user
+curl -X POST "https://api.clerk.com/v1/organizations" \
+  -H "Authorization: Bearer $CLERK_SECRET_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test Budget","created_by":"<user_id>"}'
+
+# 3. Create a session
+curl -X POST "https://api.clerk.com/v1/sessions" \
+  -H "Authorization: Bearer $CLERK_SECRET_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"<user_id>"}'
+
+# 4. Get a JWT (valid ~60s, refresh as needed)
+curl -X POST "https://api.clerk.com/v1/sessions/<session_id>/tokens" \
+  -H "Authorization: Bearer $CLERK_SECRET_KEY"
+
+# 5. Call app API routes
+curl -H "Authorization: Bearer <jwt>" http://localhost:3000/api/budgets
+```
