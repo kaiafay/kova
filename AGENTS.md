@@ -84,3 +84,7 @@ curl -H "Authorization: Bearer <jwt>" http://localhost:3000/api/budgets
 ```
 
 Note: when creating orgs via the Backend API (not the app UI), `POST /api/seed` must be called manually to populate default budget categories. The app's onboarding page does this automatically.
+
+## Known issues
+
+- **Orphaned Clerk organizations**: When the last member leaves a budget (self-removal via `DELETE /api/members/[userId]`), the Clerk organization is not deleted — it becomes orphaned with zero members. The `deleteBudget` flow in `budget-switcher.tsx` does call `organization.destroy()`, but that's a separate manual action. A fix should check the remaining member count after self-removal and auto-delete the org (and its database rows) if empty.
